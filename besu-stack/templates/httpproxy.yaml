@@ -14,6 +14,9 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
   virtualhost:
     fqdn: {{ .Values.ingress.hostname }}
     {{- if .Values.ingress.tls.enabled }}

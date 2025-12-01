@@ -9,6 +9,7 @@ rpcNodes:
 ingress:
   enabled: true
   type: httpproxy
+  className: contour
   hostname: besu-rpc.example.com
   tls:
     enabled: true
