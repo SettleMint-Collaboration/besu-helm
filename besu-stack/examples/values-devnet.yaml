@@ -10,9 +10,10 @@
 # ║                                                                              ║
 # ║  Before deploying:                                                           ║
 # ║  1. Generate your own keys using network-bootstrapper                        ║
-# ║  2. Replace ALL private keys below with freshly generated ones              ║
+# ║  2. Replace ALL keys below with freshly generated ones                       ║
 # ║  3. Update the genesis.raw with your new extraData                          ║
-# ║  4. Store production keys in a secure secret management system              ║
+# ║  4. Update staticNodes.raw with your new enode URLs                          ║
+# ║  5. Store production keys in a secure secret management system              ║
 # ║                                                                              ║
 # ║  Generate new keys:                                                          ║
 # ║  docker run --rm ghcr.io/settlemint/network-bootstrapper generate \          ║
@@ -24,7 +25,7 @@ genesis:
   raw: |
     {
       "config": {
-        "chainId": 43325,
+        "chainId": 41917,
         "homesteadBlock": 0,
         "eip150Block": 0,
         "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -56,19 +57,24 @@ genesis:
       "mixHash": "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365",
       "coinbase": "0x0000000000000000000000000000000000000000",
       "alloc": {
-        "0xB294376E702f52BbF2D611648429c327537e3851": {
+        "0x616d1F7d68B506209eF76d1a3681f6E2Be74989A": {
           "balance": "0x446c3b15f9926687d2c40534fdb564000000000000"
         }
       },
-      "extraData": "0xf83aa00000000000000000000000000000000000000000000000000000000000000000d594d03450214d56e2ee26af0d4f0bdad0dd290e4fe5c080c0"
+      "extraData": "0xf83aa00000000000000000000000000000000000000000000000000000000000000000d594a2090973847b08252f9cb2b3221183aaf62a455dc080c0"
     }
+
+# Static nodes are auto-generated from validator public keys
+# The enode URLs use the release namespace automatically
 
 validators:
   replicas: 1
   keys:
     # ⚠️  EXAMPLE KEYS - DO NOT USE IN PRODUCTION - GENERATE YOUR OWN!
     inline:
-      - privateKey: "0x0f16081d2c9e19796ee700c2eec7f03fdce1e4ea9ee5fe33ffbe03645a5910cb" # validator-0
+      - privateKey: "0xf0a9fd965c67a535b38bce5bdfa8c6d150814aaea98cd34b4fba8b63af4c03c3"
+        publicKey: "0x5ec62de32416911b29446e58d061897b80c5b621e4e60baa4069f8ea6a04bccafe73a08db6289010d53afdeea0cde80a15e64f90aca25c551f03f9897de30bdb"
+        nodeAddress: "0xA2090973847b08252f9CB2B3221183aaF62A455d"
   resources:
     requests:
       cpu: "500m"

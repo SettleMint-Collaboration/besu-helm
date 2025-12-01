@@ -10,9 +10,10 @@
 # ║                                                                              ║
 # ║  Before deploying:                                                           ║
 # ║  1. Generate your own keys using network-bootstrapper                        ║
-# ║  2. Replace ALL private keys below with freshly generated ones              ║
+# ║  2. Replace ALL keys below with freshly generated ones                       ║
 # ║  3. Update the genesis.raw with your new extraData                          ║
-# ║  4. Store production keys in a secure secret management system              ║
+# ║  4. Update staticNodes.raw with your new enode URLs                          ║
+# ║  5. Store production keys in a secure secret management system              ║
 # ║                                                                              ║
 # ║  Generate new keys:                                                          ║
 # ║  docker run --rm ghcr.io/settlemint/network-bootstrapper generate \          ║
@@ -24,7 +25,7 @@ genesis:
   raw: |
     {
       "config": {
-        "chainId": 48363,
+        "chainId": 48818,
         "homesteadBlock": 0,
         "eip150Block": 0,
         "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -56,22 +57,33 @@ genesis:
       "mixHash": "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365",
       "coinbase": "0x0000000000000000000000000000000000000000",
       "alloc": {
-        "0x76Ad49e14d3762cA12F61c3fbeEDf451D631AeBB": {
+        "0x06F5231d89aC10eea097BBCE2a9C4c0f586Bc631": {
           "balance": "0x446c3b15f9926687d2c40534fdb564000000000000"
         }
       },
-      "extraData": "0xf87aa00000000000000000000000000000000000000000000000000000000000000000f854945ab3577cc8365cda0aa711d3f8c079fa5457bd8e949eaa4c15805107f5a55cd962a114b40192c3793d949b55e50872d592637933bedeafedf525b819cac194c6cab1f176285c1d75f8832d1ecb2f2b3615ac9ec080c0"
+      "extraData": "0xf87aa00000000000000000000000000000000000000000000000000000000000000000f8549427340aad44966d1d17d9f341ca25c646a35f49fa945eb04706951a073e262f938296be2443eaf0315e946a544789d84bedb1015b4e3211186969895f2433946fd84466cf4dca89341b1d236310670de74b556ec080c0"
     }
+
+# Static nodes are auto-generated from validator public keys
+# The enode URLs use the release namespace automatically
 
 validators:
   replicas: 4
   keys:
     # ⚠️  EXAMPLE KEYS - DO NOT USE IN PRODUCTION - GENERATE YOUR OWN!
     inline:
-      - privateKey: "0xe467f4b8a03e460ddeb981c92b5a66d5e6aa6c6fdb4cdd025fd70d1b3482e070" # validator-0
-      - privateKey: "0x5d0b5431dce12963ec70c6af878b0f3e0efa9cfd99bd5e59a60a139cb639b0e1" # validator-1
-      - privateKey: "0x83cd6599e528c4fa2e638cfaf7df68468fb795362cd6906d1705fb15ed9654fd" # validator-2
-      - privateKey: "0x20fcd768972654476ec5d3847902fbdeb2c8acc09c52ac30c5c4c332620466e4" # validator-3
+      - privateKey: "0x23e54e44348327473db4d4aab2050060c8c8bf0c4a1ba17203d1a9f88ea8d91c"
+        publicKey: "0xf30343f84d87743ad3027383f1d90044141ffdf2c01de09f1a5fcd5c05a0edf7cd78b300aafd0d33135964b0503adb395f651ffd5d8682d04b65fb585252ca5b"
+        nodeAddress: "0x27340aAD44966D1D17D9f341cA25C646a35f49fa"
+      - privateKey: "0x7221daf4805ae3bd59a1282ddc13b8b1164f35d6d646bfe34582f0b1f788a877"
+        publicKey: "0x4cb061eef05c70348b449de5a006704a86fdf1e7fc1cc358e1d35b7fb5c1e7af0f9ed7bef500ec077acd1cfce0e865940b0565361f35402e35b28356c7a11c60"
+        nodeAddress: "0x5eb04706951a073e262F938296bE2443EAF0315E"
+      - privateKey: "0xd10c3ddbc4ca41124d04fc31a7aabcb3608463574fe8bdc9acc1505a240c5a2b"
+        publicKey: "0x0a0c5fc924d43a39139ef91d35de526487237feb8e11d5c31cb4c04c788533991fee3f6df679b62ac7fb0cde959fece87432a5147b03b5a6aff965c4d004ba87"
+        nodeAddress: "0x6a544789d84beDb1015B4e3211186969895F2433"
+      - privateKey: "0x2cf41b60f88bc3e227c685e676676fc6edfcbbbcffbf8fc5504fa8aa6bab8e21"
+        publicKey: "0xb83dec5298c5fb9ca67a5b804c99f866d50f2929f05d36ec5b0f79a50c338003a692d95908cafcbfc12a11e24de1df732709fad3dd58334f6d463f61f39b5ba8"
+        nodeAddress: "0x6Fd84466cF4dCa89341b1d236310670De74b556e"
   resources:
     requests:
       cpu: "1"

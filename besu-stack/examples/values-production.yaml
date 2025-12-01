@@ -10,11 +10,12 @@
 # ║                                                                              ║
 # ║  Before deploying to production:                                             ║
 # ║  1. Generate your own keys using network-bootstrapper                        ║
-# ║  2. Replace ALL private keys below with freshly generated ones              ║
+# ║  2. Replace ALL keys below with freshly generated ones                       ║
 # ║  3. Update the genesis.raw with your new extraData                          ║
-# ║  4. Store keys using Kubernetes Secrets or external secret management       ║
-# ║  5. Use existingSecret or existingSecrets instead of inline keys            ║
-# ║  6. Review and adjust all resource limits for your workload                 ║
+# ║  4. Update staticNodes.raw with your new enode URLs                          ║
+# ║  5. Store keys using Kubernetes Secrets or external secret management       ║
+# ║  6. Use existingSecret or existingSecrets instead of inline keys            ║
+# ║  7. Review and adjust all resource limits for your workload                 ║
 # ║                                                                              ║
 # ║  Generate new keys:                                                          ║
 # ║  docker run --rm ghcr.io/settlemint/network-bootstrapper generate \          ║
@@ -26,7 +27,7 @@ genesis:
   raw: |
     {
       "config": {
-        "chainId": 48362,
+        "chainId": 49240,
         "homesteadBlock": 0,
         "eip150Block": 0,
         "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -58,12 +59,15 @@ genesis:
       "mixHash": "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365",
       "coinbase": "0x0000000000000000000000000000000000000000",
       "alloc": {
-        "0xCd1B9442f9193cf40B22420f8b48665D95F85492": {
+        "0x49A321293556E949407f04F84e38e35AE508e2B3": {
           "balance": "0x446c3b15f9926687d2c40534fdb564000000000000"
         }
       },
-      "extraData": "0xf8b9a00000000000000000000000000000000000000000000000000000000000000000f893945faa267b966e7c6a52d5c9acf65fb58e850f37939462152c65384f6b90a006a481bd966e53ebbeffc2943376c5255f9d81ee0111e673becff2f15b883f7994755151064f3857d5d01c81914f4eead12af2d6aa946f1f758742ec963a91db19374defab24e24afa0294a6bb1199cf4b85df3b8917380ea2e7658b100fe0944de051d22186f98af4077edd736ef6606e180302c080c0"
+      "extraData": "0xf8b9a00000000000000000000000000000000000000000000000000000000000000000f89394c8ddb5da0ce621a7aa495b1e81761d44c234663694ade5b14d5490f751eb14594f0ea7d0eb5fcc83ab9437e055aae03decb3bcfea4a9bf14b7f347abf1da9458491540ca6b6a844e56b883234a1dd402836cb2941d389964cafe6a9af3a186f43d5b16fdc6a11fbb94f6b64c7caab2d7d02fb506a00a2225996f48842d944bf618ef6a1ff2ab23eb20e00d4a4deec3925908c080c0"
     }
+
+# Static nodes are auto-generated from validator public keys
+# The enode URLs use the release namespace automatically
 
 validators:
   replicas: 7
@@ -71,13 +75,27 @@ validators:
     # ⚠️  EXAMPLE KEYS - DO NOT USE IN PRODUCTION - GENERATE YOUR OWN!
     # For production, use existingSecret or existingSecrets instead of inline!
     inline:
-      - privateKey: "0x1a2a656f65ac915dfec7b28279ab8d4cce0fc8cf9d984f2e73e5cbcc29fb210e" # validator-0
-      - privateKey: "0x1620b09f7b4454b899593c9fba416394dacfc0f8365c96778f50f41c7046cb2d" # validator-1
-      - privateKey: "0x0968cfccb7593df67236c74f3d51cff03a3aaa73842d9bb41ee4fde93a30410f" # validator-2
-      - privateKey: "0x0ec08e3df6ad70b61a0af6295b3631f7cf4c41582d5f1858addde232a83dd29d" # validator-3
-      - privateKey: "0xcffe2013a5c9c7b5532410f0b7b251aafc9a9c8d701118e4f7c6608abcb7c19c" # validator-4
-      - privateKey: "0xa152a4d64ec0589d10b3b1e2b48405c8b0182a7e04603e93164b5ac703c2838d" # validator-5
-      - privateKey: "0x2e8a729b484e3f6745c380660348f51c4110f7e23de786b87786503c95c017b3" # validator-6
+      - privateKey: "0x0780e1e6c7afa055a63d734695030efadd300317c25757771dfc74fda501bad5"
+        publicKey: "0x7424b721d8e4c2acdec863c78f69852a275874ee5cb0b4a4153018be3c571fb42d1b2eaf5670b9fa1881e68e8e403a4bd166fab8b5632765b8939e61ede589f1"
+        nodeAddress: "0xC8Ddb5da0ce621a7aa495b1E81761d44c2346636"
+      - privateKey: "0x451d58fafca4731d0a58c7902b52dbf7b270e0469196f64852c2d933a9da5adc"
+        publicKey: "0x601c5a60fd92e20955ef80ddcbd43011dbf35ca89913ef7be594685a110d7cf6842ceb27f9b4b3d2ceb194900f513b33687f60d34c6c03387f8e061f202262f3"
+        nodeAddress: "0xADE5b14D5490F751EB14594F0eA7d0Eb5Fcc83Ab"
+      - privateKey: "0x66a53fb9f6ae70cb583d9269e72c6ab6fdebe2759411b240ea5ef424d37a1b87"
+        publicKey: "0x173d7b64ed8ed6e2760af22d56dc0cbb1c8cd65a1b23bd6c4ba49dbbc1574caa3ddecec6f5bf19820d9309397e016cac932e370bcc4553cf750ded58601ea892"
+        nodeAddress: "0x37E055aAe03deCB3BCfEa4a9bF14b7F347aBf1da"
+      - privateKey: "0x155355083dcde742ef9da7f4d361752b637b796abce859ebac844c4f2e04357e"
+        publicKey: "0x623aa2f6e82ccb83de201d823e14ce110dea2f2a92dc78a006380322a6d41c43491b128937646e1390769a5924ce06e437edb98766aeca229eab1dc912674659"
+        nodeAddress: "0x58491540CA6B6a844E56B883234A1dd402836cB2"
+      - privateKey: "0x1e680da32fec04aab319540ed66872eb1fd1ed2140b6e841a0fabfcfeea5c076"
+        publicKey: "0xe01d84e7fab9caf47e0f6cc35239a4826984969cac82d32069a8caa93685bf580c173ab13a2362bdaeebe821788c7614f4f85725e45c31897b2016efd27b8c96"
+        nodeAddress: "0x1d389964cAfE6A9af3a186F43d5b16fDC6A11fbB"
+      - privateKey: "0x85ee036d243518fe5410f2c48914ec3b8cf52a597b443985250f304bd0509244"
+        publicKey: "0x3b97c74f4ec17a5d4f708744879ba011811c24eb72841d97b286d4efe8eaaca44c77ed037f45eebdba8ddffb3e42209e2c75a0429e07a8342f37d5de747b6295"
+        nodeAddress: "0xf6B64c7cAAB2D7d02FB506a00A2225996F48842d"
+      - privateKey: "0x1ba69f18ed4bd720ab3841479c37744beb877549e92b1faae2724483c3baae4b"
+        publicKey: "0xa54d556742ce8f15b095d96ddb2e9ebb6a358bcb1f07b1fe08e6e8f50db78a7151c7fc8364eeb53bb6cc4b31cdae3c353c69d4bf0e1d07b155b33a49e2012fbf"
+        nodeAddress: "0x4bF618ef6A1FF2aB23EB20e00d4a4dEeC3925908"
   resources:
     requests:
       cpu: "4"

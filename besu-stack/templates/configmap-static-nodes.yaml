@@ -1,4 +1,6 @@
 {{- if .Values.validators.enabled }}
+{{- if not .Values.staticNodes.configMapRef.name }}
+{{- /* Only create ConfigMap if no external configMapRef is specified */ -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -11,9 +13,7 @@ metadata:
     {{- . | nindent 4 }}
   {{- end }}
 data:
-  # Static nodes list - will be populated with validator enode URLs
-  # This is a placeholder that gets updated by the init container
-  # or by setting discovery.bootnodes in values
   static-nodes.json: |
     {{ include "besu-stack.staticNodes" . }}
+{{- end }}
 {{- end }}

@@ -92,7 +92,7 @@ validators:
     # -- Image repository
     repository: hyperledger/besu
     # -- Image tag (defaults to appVersion)
-    tag: ""
+    tag: "25.11.0"
     # -- Image pull policy
     pullPolicy: IfNotPresent
 
@@ -406,6 +406,25 @@ discovery:
 
   # -- Enable DNS-based discovery in Kubernetes
   dnsEnabled: true
+
+# =============================================================================
+# STATIC NODES CONFIGURATION
+# =============================================================================
+
+staticNodes:
+  # -- Raw static-nodes.json content (with full enode URLs)
+  # Format: ["enode://<pubkey>@<host>:<port>?discport=<port>", ...]
+  # Generate using: docker run --rm ghcr.io/settlemint/network-bootstrapper generate
+  # If empty, DNS-only static nodes will be generated for DNS-based discovery
+  raw: []
+
+  # -- Use external ConfigMap for static nodes
+  # If specified, ignores 'raw' value and uses this ConfigMap
+  configMapRef:
+    # -- Name of existing ConfigMap containing static-nodes.json
+    name: ""
+    # -- Key in the ConfigMap (default: static-nodes.json)
+    key: "static-nodes.json"
 
 # =============================================================================
 # SERVICE ACCOUNT

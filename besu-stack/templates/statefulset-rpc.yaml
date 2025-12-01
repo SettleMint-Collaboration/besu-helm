@@ -95,10 +95,6 @@ spec:
           {{- end }}
           args:
             {{- include "besu-stack.rpcNodes.args" . | nindent 12 }}
-            {{- /* Add bootnodes pointing to validators */ -}}
-            {{- if .Values.validators.enabled }}
-            - --bootnodes={{ include "besu-stack.bootnodes" . }}
-            {{- end }}
           ports:
             - name: p2p-tcp
               containerPort: {{ .Values.rpcNodes.p2p.port }}
@@ -139,6 +135,15 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+            # Unset Docker image defaults to avoid warnings
+            {{- if not .Values.rpcNodes.rpc.ws.enabled }}
+            - name: BESU_RPC_WS_HOST
+              value: ""
+            {{- end }}
+            {{- if not .Values.rpcNodes.rpc.graphql.enabled }}
+            - name: BESU_GRAPHQL_HTTP_HOST
+              value: ""
+            {{- end }}
             {{- with .Values.rpcNodes.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -171,6 +176,10 @@ spec:
             - name: genesis
               mountPath: /etc/genesis
               readOnly: true
+            - name: static-nodes
+              mountPath: /etc/besu/static-nodes.json
+              subPath: {{ include "besu-stack.staticNodesConfigMapKey" . }}
+              readOnly: true
             {{- if include "besu-stack.rpcNodes.hasKeys" . }}
             - name: keys
               mountPath: /secrets
@@ -185,6 +194,9 @@ spec:
         - name: genesis
           configMap:
             name: {{ include "besu-stack.fullname" . }}-genesis
+        - name: static-nodes
+          configMap:
+            name: {{ include "besu-stack.staticNodesConfigMapName" . }}
         - name: tmp
           emptyDir: {}
         {{- if .Values.rpcNodes.keys.inline }}

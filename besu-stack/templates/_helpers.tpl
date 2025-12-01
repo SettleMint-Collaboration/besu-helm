@@ -147,7 +147,7 @@ If discovery.bootnodes is set, use those. Otherwise, generate from validator ser
 {{- else -}}
 {{- $serviceName := include "besu-stack.validators.serviceName" . -}}
 {{- $namespace := .Release.Namespace -}}
-{{- $port := .Values.validators.p2p.port | default 30303 -}}
+{{- $port := .Values.validators.p2p.port | default 30303 | int -}}
 {{- $replicas := .Values.validators.replicas | int -}}
 {{- $nodes := list -}}
 {{- range $i := until $replicas -}}
@@ -159,17 +159,68 @@ If discovery.bootnodes is set, use those. Otherwise, generate from validator ser
 
 {{/*
 Generate static-nodes.json content
+Priority:
+1. staticNodes.raw - User-provided full enode URLs
+2. validators.keys.inline with publicKey - Build enode URLs from public keys
+3. DNS-only format - For DNS-based discovery (Xdns-enabled)
 */}}
 {{- define "besu-stack.staticNodes" -}}
+{{- $staticNodesRaw := .Values.staticNodes.raw | default list -}}
+{{- if gt (len $staticNodesRaw) 0 -}}
+{{- /* Use user-provided static nodes with full enode URLs */ -}}
+{{- $staticNodesRaw | toJson -}}
+{{- else -}}
+{{- /* Build static nodes from validators */ -}}
 {{- $serviceName := include "besu-stack.validators.serviceName" . -}}
 {{- $namespace := .Release.Namespace -}}
 {{- $port := .Values.validators.p2p.port | int | default 30303 -}}
 {{- $replicas := .Values.validators.replicas | int -}}
+{{- $inlineKeys := .Values.validators.keys.inline | default list -}}
+{{- $hasPublicKeys := false -}}
+{{- range $inlineKeys -}}
+{{- if .publicKey -}}
+{{- $hasPublicKeys = true -}}
+{{- end -}}
+{{- end -}}
 {{- $nodes := list -}}
 {{- range $i := until $replicas -}}
-{{- $nodes = append $nodes (printf "%s-%d.%s.%s.svc.cluster.local:%d" $serviceName $i $serviceName $namespace $port) -}}
+{{- $host := printf "%s-%d.%s.%s.svc.cluster.local" $serviceName $i $serviceName $namespace -}}
+{{- if and $hasPublicKeys (lt $i (len $inlineKeys)) -}}
+{{- /* Build full enode URL with public key */ -}}
+{{- $key := index $inlineKeys $i -}}
+{{- $pubKey := $key.publicKey | replace "0x" "" -}}
+{{- $nodes = append $nodes (printf "enode://%s@%s:%d?discport=%d" $pubKey $host $port $port) -}}
+{{- else -}}
+{{- /* DNS-only format for DNS-based discovery */ -}}
+{{- $nodes = append $nodes (printf "%s:%d" $host $port) -}}
+{{- end -}}
 {{- end -}}
 {{- $nodes | toJson -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Get static-nodes ConfigMap name
+Returns either the external configMapRef name or the generated name
+*/}}
+{{- define "besu-stack.staticNodesConfigMapName" -}}
+{{- if .Values.staticNodes.configMapRef.name -}}
+{{- .Values.staticNodes.configMapRef.name -}}
+{{- else -}}
+{{- include "besu-stack.fullname" . -}}-static-nodes
+{{- end -}}
+{{- end -}}
+
+{{/*
+Get static-nodes ConfigMap key
+Returns the key to use for static-nodes.json
+*/}}
+{{- define "besu-stack.staticNodesConfigMapKey" -}}
+{{- if .Values.staticNodes.configMapRef.name -}}
+{{- .Values.staticNodes.configMapRef.key | default "static-nodes.json" -}}
+{{- else -}}
+static-nodes.json
+{{- end -}}
 {{- end -}}
 
 {{/*
@@ -306,32 +357,65 @@ imagePullSecrets:
 {{- end -}}
 
 {{/*
-Besu command args for validators
+Besu command args for validators - uses FOREST storage for consensus nodes
 */}}
 {{- define "besu-stack.validators.args" -}}
 - --data-path=/data/besu
 - --genesis-file=/etc/genesis/genesis.json
 - --node-private-key-file=/secrets/nodekey
+- --static-nodes-file=/etc/besu/static-nodes.json
+# Storage and performance
+- --data-storage-format=FOREST
+- --bonsai-limit-trie-logs-enabled=false
+- --cache-last-blocks=1024
+- --receipt-compaction-enabled=true
 - --min-gas-price=0
+# Transaction pool
+- --tx-pool=SEQUENCED
+- --tx-pool-max-size=100000
+- --tx-pool-no-local-priority=true
+- --tx-pool-limit-by-account-percentage=1
+- --tx-pool-enable-save-restore=true
+# P2P networking
+- --p2p-enabled=true
+- --discovery-enabled=true
 - --p2p-host=0.0.0.0
 - --p2p-port={{ .Values.validators.p2p.port }}
+- --max-peers=25
 - --nat-method=NONE
 - --Xdns-enabled={{ .Values.discovery.dnsEnabled }}
 - --Xdns-update-enabled={{ .Values.discovery.dnsEnabled }}
+- --random-peer-priority-enabled=true
+- --remote-connections-limit-enabled=false
+# Sync
+- --sync-mode=FULL
 {{- if .Values.validators.rpc.http.enabled }}
+# HTTP RPC
 - --rpc-http-enabled
 - --rpc-http-host=0.0.0.0
 - --rpc-http-port={{ .Values.validators.rpc.http.port }}
 - --rpc-http-api={{ .Values.validators.rpc.http.api }}
-- --host-allowlist=*
 - --rpc-http-cors-origins=all
+- --rpc-http-authentication-enabled=false
+- --rpc-http-max-active-connections=2000
+- --rpc-http-max-request-content-length=524288000
+- --rpc-http-max-batch-size=512
+- --host-allowlist=*
+- --revert-reason-enabled=true
+- --rpc-tx-feecap=0
 {{- end }}
 {{- if .Values.validators.rpc.ws.enabled }}
+# WebSocket RPC
 - --rpc-ws-enabled
 - --rpc-ws-host=0.0.0.0
 - --rpc-ws-port={{ .Values.validators.rpc.ws.port }}
+- --rpc-ws-api={{ .Values.validators.rpc.ws.api | default .Values.validators.rpc.http.api }}
+- --rpc-ws-authentication-enabled=false
+- --rpc-ws-max-active-connections=2000
+- --rpc-ws-max-frame-size=2097152
 {{- end }}
 {{- if .Values.validators.metrics.enabled }}
+# Metrics
 - --metrics-enabled
 - --metrics-host=0.0.0.0
 - --metrics-port={{ .Values.validators.metrics.port }}
@@ -342,7 +426,7 @@ Besu command args for validators
 {{- end -}}
 
 {{/*
-Besu command args for RPC nodes
+Besu command args for RPC nodes - uses BONSAI storage for faster queries
 */}}
 {{- define "besu-stack.rpcNodes.args" -}}
 - --data-path=/data/besu
@@ -350,32 +434,66 @@ Besu command args for RPC nodes
 {{- if include "besu-stack.rpcNodes.hasKeys" . }}
 - --node-private-key-file=/secrets/nodekey
 {{- end }}
+- --static-nodes-file=/etc/besu/static-nodes.json
+# Storage and performance - BONSAI for RPC nodes
+- --data-storage-format=BONSAI
+- --bonsai-limit-trie-logs-enabled=false
+- --cache-last-blocks=1024
+- --receipt-compaction-enabled=true
 - --min-gas-price=0
+# Transaction pool
+- --tx-pool=SEQUENCED
+- --tx-pool-max-size=100000
+- --tx-pool-no-local-priority=true
+- --tx-pool-limit-by-account-percentage=1
+- --tx-pool-enable-save-restore=true
+# P2P networking
+- --p2p-enabled=true
+- --discovery-enabled=true
 - --p2p-host=0.0.0.0
 - --p2p-port={{ .Values.rpcNodes.p2p.port }}
+- --max-peers=25
 - --nat-method=NONE
 - --Xdns-enabled={{ .Values.discovery.dnsEnabled }}
 - --Xdns-update-enabled={{ .Values.discovery.dnsEnabled }}
+- --random-peer-priority-enabled=true
+- --remote-connections-limit-enabled=false
+# Sync
+- --sync-mode=FULL
 {{- if .Values.rpcNodes.rpc.http.enabled }}
+# HTTP RPC
 - --rpc-http-enabled
 - --rpc-http-host=0.0.0.0
 - --rpc-http-port={{ .Values.rpcNodes.rpc.http.port }}
 - --rpc-http-api={{ .Values.rpcNodes.rpc.http.api }}
-- --host-allowlist={{ .Values.rpcNodes.rpc.http.hostAllowlist }}
-- --rpc-http-cors-origins={{ .Values.rpcNodes.rpc.http.corsOrigins }}
+- --rpc-http-cors-origins=all
+- --rpc-http-authentication-enabled=false
+- --rpc-http-max-active-connections=2000
+- --rpc-http-max-request-content-length=524288000
+- --rpc-http-max-batch-size=512
+- --host-allowlist=*
+- --revert-reason-enabled=true
+- --rpc-tx-feecap=0
 {{- end }}
 {{- if .Values.rpcNodes.rpc.ws.enabled }}
+# WebSocket RPC
 - --rpc-ws-enabled
 - --rpc-ws-host=0.0.0.0
 - --rpc-ws-port={{ .Values.rpcNodes.rpc.ws.port }}
 - --rpc-ws-api={{ .Values.rpcNodes.rpc.ws.api }}
+- --rpc-ws-authentication-enabled=false
+- --rpc-ws-max-active-connections=2000
+- --rpc-ws-max-frame-size=2097152
 {{- end }}
 {{- if .Values.rpcNodes.rpc.graphql.enabled }}
+# GraphQL
 - --graphql-http-enabled
 - --graphql-http-host=0.0.0.0
 - --graphql-http-port={{ .Values.rpcNodes.rpc.graphql.port }}
+- --graphql-http-cors-origins=all
 {{- end }}
 {{- if .Values.rpcNodes.metrics.enabled }}
+# Metrics
 - --metrics-enabled
 - --metrics-host=0.0.0.0
 - --metrics-port={{ .Values.rpcNodes.metrics.port }}
