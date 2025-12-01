@@ -15,6 +15,7 @@ ingress:
     enabled: true
     # Use cert-manager for automatic certificate provisioning
     secretName: besu-rpc-tls
+    clusterIssuer: letsencrypt-prod
   # HTTPProxy-specific settings
   httpproxy:
     responseTimeout: 60s
