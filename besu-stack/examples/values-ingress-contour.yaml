@@ -5,26 +5,16 @@ rpcNodes:
   service:
     type: ClusterIP
 
-httpProxy:
+# Enable ingress with HTTPProxy type for Contour
+ingress:
   enabled: true
-  host: besu-rpc.example.com
+  type: httpproxy
+  hostname: besu-rpc.example.com
   tls:
     enabled: true
     # Use cert-manager for automatic certificate provisioning
     secretName: besu-rpc-tls
-  # Rate limiting for public RPC endpoints
-  rateLimitPolicy:
-    local:
-      requests: 100
-      unit: minute
-  # Timeout settings for blockchain RPC calls
-  timeoutPolicy:
-    response: 60s
-    idle: 120s
-
-# Disable standard ingress when using HTTPProxy
-ingress:
-  enabled: false
-  tls:
-    enabled: false
-    secretName: ""
+  # HTTPProxy-specific settings
+  httpproxy:
+    responseTimeout: 60s
+    idleTimeout: 120s
