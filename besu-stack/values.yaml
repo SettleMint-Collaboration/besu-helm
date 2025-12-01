@@ -499,6 +499,10 @@ ingress:
     enabled: false
     # -- Secret name for TLS certificate
     secretName: ""
+    # -- cert-manager ClusterIssuer name (creates Certificate resource)
+    clusterIssuer: ""
+    # -- cert-manager Issuer name (namespace-scoped, alternative to clusterIssuer)
+    issuer: ""
 
   # -- Ingress annotations
   annotations: {}

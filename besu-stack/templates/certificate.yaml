@@ -1,0 +1,26 @@
+{{- if and .Values.ingress.enabled .Values.ingress.tls.enabled .Values.rpcNodes.enabled }}
+{{- if .Capabilities.APIVersions.Has "cert-manager.io/v1" }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "besu-stack.fullname" . }}-rpc-tls
+  labels:
+    {{- include "besu-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rpc
+spec:
+  secretName: {{ .Values.ingress.tls.secretName | default (printf "%s-rpc-tls" (include "besu-stack.fullname" .)) }}
+  dnsNames:
+    - {{ .Values.ingress.hostname }}
+  issuerRef:
+    {{- if .Values.ingress.tls.clusterIssuer }}
+    kind: ClusterIssuer
+    name: {{ .Values.ingress.tls.clusterIssuer }}
+    {{- else if .Values.ingress.tls.issuer }}
+    kind: Issuer
+    name: {{ .Values.ingress.tls.issuer }}
+    {{- else }}
+    kind: ClusterIssuer
+    name: letsencrypt-prod
+    {{- end }}
+{{- end }}
+{{- end }}
