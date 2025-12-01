@@ -1,0 +1,35 @@
+# High Performance Tier - Production
+# Suitable for: Production networks, high-availability deployments
+#
+# Usage:
+#   ./install.sh production -c aws -p high
+
+validators:
+  resources:
+    requests:
+      cpu: "4"
+      memory: "16Gi"
+    limits:
+      cpu: "8"
+      memory: "32Gi"
+  persistence:
+    size: 500Gi
+
+rpcNodes:
+  resources:
+    requests:
+      cpu: "2"
+      memory: "8Gi"
+    limits:
+      cpu: "4"
+      memory: "16Gi"
+  persistence:
+    size: 1Ti
+
+podDisruptionBudget:
+  validators:
+    enabled: true
+    minAvailable: 5
+  rpcNodes:
+    enabled: true
+    minAvailable: 2

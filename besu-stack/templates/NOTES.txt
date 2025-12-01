@@ -1,0 +1,102 @@
+
+===============================================================================
+  Besu Stack - Hyperledger Besu Blockchain Network
+===============================================================================
+
+{{ if .Values.validators.enabled }}
+VALIDATORS:
+  {{ .Values.validators.replicas }} validator node(s) deployed
+
+  Internal access:
+    Service: {{ include "besu-stack.validators.serviceName" . }}
+    DNS: {{ include "besu-stack.validators.serviceName" . }}.{{ .Release.Namespace }}.svc.cluster.local
+{{- if .Values.validators.rpc.http.enabled }}
+    RPC: http://{{ include "besu-stack.validators.serviceName" . }}:{{ .Values.validators.rpc.http.port }}
+{{- end }}
+
+  View validator logs:
+    kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=validator -f
+
+  Get validator pod status:
+    kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/component=validator
+{{ end }}
+
+{{ if .Values.rpcNodes.enabled }}
+RPC NODES:
+  {{ .Values.rpcNodes.replicas }} RPC node(s) deployed
+
+  Internal access:
+    Service: {{ include "besu-stack.rpcNodes.serviceName" . }}
+    DNS: {{ include "besu-stack.rpcNodes.serviceName" . }}.{{ .Release.Namespace }}.svc.cluster.local
+{{- if .Values.rpcNodes.rpc.http.enabled }}
+    HTTP RPC: http://{{ include "besu-stack.rpcNodes.serviceName" . }}:{{ .Values.rpcNodes.rpc.http.port }}
+{{- end }}
+{{- if .Values.rpcNodes.rpc.ws.enabled }}
+    WebSocket: ws://{{ include "besu-stack.rpcNodes.serviceName" . }}:{{ .Values.rpcNodes.rpc.ws.port }}
+{{- end }}
+
+  View RPC node logs:
+    kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=rpc -f
+
+  Get RPC pod status:
+    kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/component=rpc
+{{ end }}
+
+{{ if .Values.ingress.enabled }}
+EXTERNAL ACCESS:
+{{- if .Values.ingress.hostname }}
+  Hostname: {{ if .Values.ingress.tls.enabled }}https{{ else }}http{{ end }}://{{ .Values.ingress.hostname }}
+{{- end }}
+{{ else }}
+LOCAL ACCESS:
+  Port-forward to access RPC locally:
+{{- if .Values.rpcNodes.enabled }}
+    kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "besu-stack.rpcNodes.serviceName" . }} {{ .Values.rpcNodes.rpc.http.port }}:{{ .Values.rpcNodes.rpc.http.port }}
+{{- else if .Values.validators.enabled }}
+    kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "besu-stack.validators.serviceName" . }} {{ .Values.validators.rpc.http.port }}:{{ .Values.validators.rpc.http.port }}
+{{- end }}
+
+  Then access at:
+    curl http://localhost:{{ .Values.rpcNodes.rpc.http.port | default .Values.validators.rpc.http.port }} \
+      -X POST \
+      -H "Content-Type: application/json" \
+      -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+{{ end }}
+
+{{ if .Values.serviceMonitor.enabled }}
+MONITORING:
+  Prometheus ServiceMonitor enabled
+  Metrics available at :{{ .Values.validators.metrics.port }}/metrics and :{{ .Values.rpcNodes.metrics.port }}/metrics
+{{ end }}
+
+NETWORK INFO:
+  Chain ID: Check your genesis configuration
+  Consensus: QBFT (default) or IBFT2
+
+USEFUL COMMANDS:
+  # Check network status
+  kubectl exec -n {{ .Release.Namespace }} {{ include "besu-stack.fullname" . }}-validators-0 -- \
+    /opt/besu/bin/besu --data-path=/data/besu public-key export-address
+
+  # View current block number
+  kubectl exec -n {{ .Release.Namespace }} {{ include "besu-stack.fullname" . }}-validators-0 -- \
+    curl -s -X POST -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+    http://localhost:{{ .Values.validators.rpc.http.port }}
+
+  # Check peer count
+  kubectl exec -n {{ .Release.Namespace }} {{ include "besu-stack.fullname" . }}-validators-0 -- \
+    curl -s -X POST -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0","method":"net_peerCount","params":[],"id":1}' \
+    http://localhost:{{ .Values.validators.rpc.http.port }}
+
+{{ if not (include "besu-stack.validators.hasKeys" .) }}
+WARNING:
+  No validator keys configured. Validators will auto-generate keys on first start.
+  For production, provide keys via:
+  - validators.keys.inline (development only)
+  - validators.keys.existingSecrets (recommended for production)
+  - validators.keys.existingSecret (single secret with all keys)
+{{ end }}
+
+===============================================================================

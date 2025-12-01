@@ -1,0 +1,45 @@
+# AWS EKS Cloud Provider Values
+# Layer this on top of your base values file
+#
+# Usage:
+#   ./install.sh devnet -c aws -p low
+#   ./install.sh testnet -c aws -p medium
+#   ./install.sh production -c aws -p high
+
+# Storage - EKS Auto Mode uses default storage class
+# Leave empty for cluster default, or specify gp3/io2 if available
+validators:
+  persistence:
+    storageClass: "" # Uses cluster default (EKS Auto Mode compatible)
+  # Spread across availability zones
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: validator
+            topologyKey: topology.kubernetes.io/zone
+  nodeSelector:
+    kubernetes.io/os: linux
+
+rpcNodes:
+  persistence:
+    storageClass: "" # Uses cluster default
+  service:
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: rpc
+            topologyKey: topology.kubernetes.io/zone
+  nodeSelector:
+    kubernetes.io/os: linux

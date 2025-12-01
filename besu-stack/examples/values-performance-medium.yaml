@@ -1,0 +1,27 @@
+# Medium Performance Tier - Testnet/Staging
+# Suitable for: Testnet nodes, staging environments
+#
+# Usage:
+#   ./install.sh testnet -c aws -p medium
+
+validators:
+  resources:
+    requests:
+      cpu: "1"
+      memory: "4Gi"
+    limits:
+      cpu: "2"
+      memory: "8Gi"
+  persistence:
+    size: 100Gi
+
+rpcNodes:
+  resources:
+    requests:
+      cpu: "1"
+      memory: "4Gi"
+    limits:
+      cpu: "2"
+      memory: "8Gi"
+  persistence:
+    size: 200Gi

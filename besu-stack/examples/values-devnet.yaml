@@ -1,0 +1,99 @@
+# Besu Stack - Development Network Configuration
+# Use this for local development and testing
+#
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                              ⚠️  WARNING ⚠️                                   ║
+# ║                                                                              ║
+# ║  THIS FILE CONTAINS EXAMPLE KEYS FOR DEMONSTRATION PURPOSES ONLY!           ║
+# ║                                                                              ║
+# ║  DO NOT USE THESE KEYS IN ANY ENVIRONMENT WHERE SECURITY MATTERS!           ║
+# ║                                                                              ║
+# ║  Before deploying:                                                           ║
+# ║  1. Generate your own keys using network-bootstrapper                        ║
+# ║  2. Replace ALL private keys below with freshly generated ones              ║
+# ║  3. Update the genesis.raw with your new extraData                          ║
+# ║  4. Store production keys in a secure secret management system              ║
+# ║                                                                              ║
+# ║  Generate new keys:                                                          ║
+# ║  docker run --rm ghcr.io/settlemint/network-bootstrapper generate \          ║
+# ║    --validators 1 --outputType screen --accept-defaults                      ║
+# ║                                                                              ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+genesis:
+  raw: |
+    {
+      "config": {
+        "chainId": 43325,
+        "homesteadBlock": 0,
+        "eip150Block": 0,
+        "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "eip155Block": 0,
+        "eip158Block": 0,
+        "byzantiumBlock": 0,
+        "constantinopleBlock": 0,
+        "petersburgBlock": 0,
+        "istanbulBlock": 0,
+        "muirGlacierBlock": 0,
+        "berlinBlock": 0,
+        "londonBlock": 0,
+        "shanghaiTime": 0,
+        "cancunTime": 0,
+        "zeroBaseFee": true,
+        "contractSizeLimit": 2147483647,
+        "evmStackSize": 2048,
+        "qbft": {
+          "blockperiodseconds": 2,
+          "epochlength": 30000,
+          "xemptyblockperiodseconds": 60,
+          "requesttimeoutseconds": 65
+        }
+      },
+      "nonce": "0x0",
+      "timestamp": "0x0",
+      "gasLimit": "0x1fffffffffffff",
+      "difficulty": "0x1",
+      "mixHash": "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365",
+      "coinbase": "0x0000000000000000000000000000000000000000",
+      "alloc": {
+        "0xB294376E702f52BbF2D611648429c327537e3851": {
+          "balance": "0x446c3b15f9926687d2c40534fdb564000000000000"
+        }
+      },
+      "extraData": "0xf83aa00000000000000000000000000000000000000000000000000000000000000000d594d03450214d56e2ee26af0d4f0bdad0dd290e4fe5c080c0"
+    }
+
+validators:
+  replicas: 1
+  keys:
+    # ⚠️  EXAMPLE KEYS - DO NOT USE IN PRODUCTION - GENERATE YOUR OWN!
+    inline:
+      - privateKey: "0x0f16081d2c9e19796ee700c2eec7f03fdce1e4ea9ee5fe33ffbe03645a5910cb" # validator-0
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+  persistence:
+    size: 10Gi
+
+rpcNodes:
+  replicas: 1
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+  persistence:
+    size: 10Gi
+
+# Disable PDB for development (allows deleting all pods)
+podDisruptionBudget:
+  validators:
+    enabled: false
+  rpcNodes:
+    enabled: false

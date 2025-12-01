@@ -1,0 +1,103 @@
+# Besu Stack - Testnet Configuration
+# Use this for staging and testnet deployments
+#
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                              ⚠️  WARNING ⚠️                                   ║
+# ║                                                                              ║
+# ║  THIS FILE CONTAINS EXAMPLE KEYS FOR DEMONSTRATION PURPOSES ONLY!           ║
+# ║                                                                              ║
+# ║  DO NOT USE THESE KEYS IN ANY ENVIRONMENT WHERE SECURITY MATTERS!           ║
+# ║                                                                              ║
+# ║  Before deploying:                                                           ║
+# ║  1. Generate your own keys using network-bootstrapper                        ║
+# ║  2. Replace ALL private keys below with freshly generated ones              ║
+# ║  3. Update the genesis.raw with your new extraData                          ║
+# ║  4. Store production keys in a secure secret management system              ║
+# ║                                                                              ║
+# ║  Generate new keys:                                                          ║
+# ║  docker run --rm ghcr.io/settlemint/network-bootstrapper generate \          ║
+# ║    --validators 4 --outputType screen --accept-defaults                      ║
+# ║                                                                              ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+genesis:
+  raw: |
+    {
+      "config": {
+        "chainId": 48363,
+        "homesteadBlock": 0,
+        "eip150Block": 0,
+        "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "eip155Block": 0,
+        "eip158Block": 0,
+        "byzantiumBlock": 0,
+        "constantinopleBlock": 0,
+        "petersburgBlock": 0,
+        "istanbulBlock": 0,
+        "muirGlacierBlock": 0,
+        "berlinBlock": 0,
+        "londonBlock": 0,
+        "shanghaiTime": 0,
+        "cancunTime": 0,
+        "zeroBaseFee": true,
+        "contractSizeLimit": 2147483647,
+        "evmStackSize": 2048,
+        "qbft": {
+          "blockperiodseconds": 2,
+          "epochlength": 30000,
+          "xemptyblockperiodseconds": 60,
+          "requesttimeoutseconds": 65
+        }
+      },
+      "nonce": "0x0",
+      "timestamp": "0x0",
+      "gasLimit": "0x1fffffffffffff",
+      "difficulty": "0x1",
+      "mixHash": "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365",
+      "coinbase": "0x0000000000000000000000000000000000000000",
+      "alloc": {
+        "0x76Ad49e14d3762cA12F61c3fbeEDf451D631AeBB": {
+          "balance": "0x446c3b15f9926687d2c40534fdb564000000000000"
+        }
+      },
+      "extraData": "0xf87aa00000000000000000000000000000000000000000000000000000000000000000f854945ab3577cc8365cda0aa711d3f8c079fa5457bd8e949eaa4c15805107f5a55cd962a114b40192c3793d949b55e50872d592637933bedeafedf525b819cac194c6cab1f176285c1d75f8832d1ecb2f2b3615ac9ec080c0"
+    }
+
+validators:
+  replicas: 4
+  keys:
+    # ⚠️  EXAMPLE KEYS - DO NOT USE IN PRODUCTION - GENERATE YOUR OWN!
+    inline:
+      - privateKey: "0xe467f4b8a03e460ddeb981c92b5a66d5e6aa6c6fdb4cdd025fd70d1b3482e070" # validator-0
+      - privateKey: "0x5d0b5431dce12963ec70c6af878b0f3e0efa9cfd99bd5e59a60a139cb639b0e1" # validator-1
+      - privateKey: "0x83cd6599e528c4fa2e638cfaf7df68468fb795362cd6906d1705fb15ed9654fd" # validator-2
+      - privateKey: "0x20fcd768972654476ec5d3847902fbdeb2c8acc09c52ac30c5c4c332620466e4" # validator-3
+  resources:
+    requests:
+      cpu: "1"
+      memory: "4Gi"
+    limits:
+      cpu: "2"
+      memory: "8Gi"
+  persistence:
+    size: 100Gi
+
+rpcNodes:
+  replicas: 2
+  resources:
+    requests:
+      cpu: "1"
+      memory: "4Gi"
+    limits:
+      cpu: "2"
+      memory: "8Gi"
+  persistence:
+    size: 200Gi
+
+podDisruptionBudget:
+  validators:
+    enabled: true
+    minAvailable: 3
+  rpcNodes:
+    enabled: true
+    minAvailable: 1

@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "besu-stack.fullname" . }}-test-connection"
+  labels:
+    {{- include "besu-stack.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  containers:
+    - name: wget
+      image: busybox:1.36
+      command:
+        - sh
+        - -c
+        - |
+          echo "Testing RPC connection..."
+          {{- if .Values.rpcNodes.enabled }}
+          # Test RPC node HTTP endpoint
+          wget -qO- --timeout=10 \
+            --post-data='{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+            --header='Content-Type: application/json' \
+            http://{{ include "besu-stack.rpcNodes.serviceName" . }}:{{ .Values.rpcNodes.rpc.http.port }} \
+            && echo "RPC node HTTP: OK" || exit 1
+          {{- else if .Values.validators.enabled }}
+          # Test validator HTTP endpoint
+          wget -qO- --timeout=10 \
+            --post-data='{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+            --header='Content-Type: application/json' \
+            http://{{ include "besu-stack.validators.serviceName" . }}:{{ .Values.validators.rpc.http.port }} \
+            && echo "Validator HTTP: OK" || exit 1
+          {{- end }}
+          echo "All tests passed!"
+  restartPolicy: Never

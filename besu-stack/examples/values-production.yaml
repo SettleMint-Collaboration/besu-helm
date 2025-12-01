@@ -1,0 +1,134 @@
+# Besu Stack - Production Configuration
+# Use this for production/mainnet deployments
+#
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                              ⚠️  WARNING ⚠️                                   ║
+# ║                                                                              ║
+# ║  THIS FILE CONTAINS EXAMPLE KEYS FOR DEMONSTRATION PURPOSES ONLY!           ║
+# ║                                                                              ║
+# ║  🚨 NEVER USE THESE KEYS IN PRODUCTION! 🚨                                   ║
+# ║                                                                              ║
+# ║  Before deploying to production:                                             ║
+# ║  1. Generate your own keys using network-bootstrapper                        ║
+# ║  2. Replace ALL private keys below with freshly generated ones              ║
+# ║  3. Update the genesis.raw with your new extraData                          ║
+# ║  4. Store keys using Kubernetes Secrets or external secret management       ║
+# ║  5. Use existingSecret or existingSecrets instead of inline keys            ║
+# ║  6. Review and adjust all resource limits for your workload                 ║
+# ║                                                                              ║
+# ║  Generate new keys:                                                          ║
+# ║  docker run --rm ghcr.io/settlemint/network-bootstrapper generate \          ║
+# ║    --validators 7 --outputType screen --accept-defaults                      ║
+# ║                                                                              ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+genesis:
+  raw: |
+    {
+      "config": {
+        "chainId": 48362,
+        "homesteadBlock": 0,
+        "eip150Block": 0,
+        "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "eip155Block": 0,
+        "eip158Block": 0,
+        "byzantiumBlock": 0,
+        "constantinopleBlock": 0,
+        "petersburgBlock": 0,
+        "istanbulBlock": 0,
+        "muirGlacierBlock": 0,
+        "berlinBlock": 0,
+        "londonBlock": 0,
+        "shanghaiTime": 0,
+        "cancunTime": 0,
+        "zeroBaseFee": true,
+        "contractSizeLimit": 2147483647,
+        "evmStackSize": 2048,
+        "qbft": {
+          "blockperiodseconds": 2,
+          "epochlength": 30000,
+          "xemptyblockperiodseconds": 60,
+          "requesttimeoutseconds": 65
+        }
+      },
+      "nonce": "0x0",
+      "timestamp": "0x0",
+      "gasLimit": "0x1fffffffffffff",
+      "difficulty": "0x1",
+      "mixHash": "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365",
+      "coinbase": "0x0000000000000000000000000000000000000000",
+      "alloc": {
+        "0xCd1B9442f9193cf40B22420f8b48665D95F85492": {
+          "balance": "0x446c3b15f9926687d2c40534fdb564000000000000"
+        }
+      },
+      "extraData": "0xf8b9a00000000000000000000000000000000000000000000000000000000000000000f893945faa267b966e7c6a52d5c9acf65fb58e850f37939462152c65384f6b90a006a481bd966e53ebbeffc2943376c5255f9d81ee0111e673becff2f15b883f7994755151064f3857d5d01c81914f4eead12af2d6aa946f1f758742ec963a91db19374defab24e24afa0294a6bb1199cf4b85df3b8917380ea2e7658b100fe0944de051d22186f98af4077edd736ef6606e180302c080c0"
+    }
+
+validators:
+  replicas: 7
+  keys:
+    # ⚠️  EXAMPLE KEYS - DO NOT USE IN PRODUCTION - GENERATE YOUR OWN!
+    # For production, use existingSecret or existingSecrets instead of inline!
+    inline:
+      - privateKey: "0x1a2a656f65ac915dfec7b28279ab8d4cce0fc8cf9d984f2e73e5cbcc29fb210e" # validator-0
+      - privateKey: "0x1620b09f7b4454b899593c9fba416394dacfc0f8365c96778f50f41c7046cb2d" # validator-1
+      - privateKey: "0x0968cfccb7593df67236c74f3d51cff03a3aaa73842d9bb41ee4fde93a30410f" # validator-2
+      - privateKey: "0x0ec08e3df6ad70b61a0af6295b3631f7cf4c41582d5f1858addde232a83dd29d" # validator-3
+      - privateKey: "0xcffe2013a5c9c7b5532410f0b7b251aafc9a9c8d701118e4f7c6608abcb7c19c" # validator-4
+      - privateKey: "0xa152a4d64ec0589d10b3b1e2b48405c8b0182a7e04603e93164b5ac703c2838d" # validator-5
+      - privateKey: "0x2e8a729b484e3f6745c380660348f51c4110f7e23de786b87786503c95c017b3" # validator-6
+  resources:
+    requests:
+      cpu: "4"
+      memory: "16Gi"
+    limits:
+      cpu: "8"
+      memory: "32Gi"
+  persistence:
+    size: 500Gi
+  # Spread validators across nodes for HA
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: validator
+            topologyKey: kubernetes.io/hostname
+
+rpcNodes:
+  replicas: 3
+  resources:
+    requests:
+      cpu: "2"
+      memory: "8Gi"
+    limits:
+      cpu: "4"
+      memory: "16Gi"
+  persistence:
+    size: 1Ti
+  # Spread RPC nodes across nodes for HA
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: rpc
+            topologyKey: kubernetes.io/hostname
+
+podDisruptionBudget:
+  validators:
+    enabled: true
+    minAvailable: 5 # Maintain quorum for 7 validators
+  rpcNodes:
+    enabled: true
+    minAvailable: 2
+
+# Enable monitoring
+serviceMonitor:
+  enabled: true
+  interval: 30s

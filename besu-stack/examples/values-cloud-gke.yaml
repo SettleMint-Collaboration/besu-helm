@@ -1,0 +1,45 @@
+# Google GKE Cloud Provider Values
+# Layer this on top of your base values file
+#
+# Usage:
+#   ./install.sh devnet -c gke -p low
+#   ./install.sh testnet -c gke -p medium
+#   ./install.sh production -c gke -p high
+
+# Storage - GKE uses default storage class
+# Leave empty for cluster default, or specify premium-rwo if available
+validators:
+  persistence:
+    storageClass: "" # Uses cluster default
+  # Spread across availability zones
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: validator
+            topologyKey: topology.kubernetes.io/zone
+  nodeSelector:
+    kubernetes.io/os: linux
+
+rpcNodes:
+  persistence:
+    storageClass: "" # Uses cluster default
+  service:
+    type: LoadBalancer
+    annotations:
+      cloud.google.com/load-balancer-type: External
+      networking.gke.io/load-balancer-type: External
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: rpc
+            topologyKey: topology.kubernetes.io/zone
+  nodeSelector:
+    kubernetes.io/os: linux

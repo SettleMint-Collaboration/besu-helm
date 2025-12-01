@@ -1,0 +1,223 @@
+{{- if .Values.validators.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "besu-stack.fullname" . }}-validators
+  labels:
+    {{- include "besu-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: validator
+  {{- with (include "besu-stack.annotations" .) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+spec:
+  serviceName: {{ include "besu-stack.validators.serviceName" . }}
+  replicas: {{ .Values.validators.replicas }}
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "besu-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: validator
+  template:
+    metadata:
+      labels:
+        {{- include "besu-stack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: validator
+      annotations:
+        {{- include "besu-stack.podAnnotations" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "besu-stack.serviceAccountName" . }}
+      {{- include "besu-stack.imagePullSecrets" . | nindent 6 }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      terminationGracePeriodSeconds: 300
+      {{- if not .Values.openshift.enabled }}
+      securityContext:
+        {{- toYaml .Values.validators.podSecurityContext | nindent 8 }}
+      {{- else }}
+      securityContext:
+        {{- include "besu-stack.openshiftPodSecurityContext" . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: init-directories
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /data/besu
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          {{- if not .Values.openshift.enabled }}
+          securityContext:
+            {{- toYaml .Values.validators.containerSecurityContext | nindent 12 }}
+          {{- else }}
+          securityContext:
+            {{- include "besu-stack.openshiftContainerSecurityContext" . | nindent 12 }}
+          {{- end }}
+      containers:
+        - name: besu
+          image: {{ include "besu-stack.validators.image" . }}
+          imagePullPolicy: {{ .Values.validators.image.pullPolicy }}
+          {{- if not .Values.openshift.enabled }}
+          securityContext:
+            {{- toYaml .Values.validators.containerSecurityContext | nindent 12 }}
+          {{- else }}
+          securityContext:
+            {{- include "besu-stack.openshiftContainerSecurityContext" . | nindent 12 }}
+          {{- end }}
+          args:
+            {{- include "besu-stack.validators.args" . | nindent 12 }}
+          ports:
+            - name: p2p-tcp
+              containerPort: {{ .Values.validators.p2p.port }}
+              protocol: TCP
+            - name: p2p-udp
+              containerPort: {{ .Values.validators.p2p.port }}
+              protocol: UDP
+            {{- if .Values.validators.rpc.http.enabled }}
+            - name: http-rpc
+              containerPort: {{ .Values.validators.rpc.http.port }}
+              protocol: TCP
+            {{- end }}
+            {{- if .Values.validators.rpc.ws.enabled }}
+            - name: ws-rpc
+              containerPort: {{ .Values.validators.rpc.ws.port }}
+              protocol: TCP
+            {{- end }}
+            {{- if .Values.validators.metrics.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.validators.metrics.port }}
+              protocol: TCP
+            {{- end }}
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: BESU_P2P_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            {{- with .Values.validators.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          startupProbe:
+            tcpSocket:
+              port: {{ .Values.validators.rpc.http.port | default 8545 }}
+            initialDelaySeconds: {{ .Values.validators.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.validators.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.validators.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.validators.startupProbe.failureThreshold }}
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.validators.rpc.http.port | default 8545 }}
+            initialDelaySeconds: {{ .Values.validators.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.validators.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.validators.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.validators.livenessProbe.failureThreshold }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.validators.rpc.http.port | default 8545 }}
+            initialDelaySeconds: {{ .Values.validators.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.validators.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.validators.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.validators.readinessProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.validators.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: genesis
+              mountPath: /etc/genesis
+              readOnly: true
+            {{- if include "besu-stack.validators.hasKeys" . }}
+            - name: keys
+              mountPath: /secrets
+              readOnly: true
+            {{- end }}
+            - name: tmp
+              mountPath: /tmp
+            {{- with .Values.validators.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: genesis
+          configMap:
+            name: {{ include "besu-stack.fullname" . }}-genesis
+        - name: tmp
+          emptyDir: {}
+        {{- if .Values.validators.keys.inline }}
+        - name: keys
+          secret:
+            secretName: {{ include "besu-stack.fullname" . }}-validator-keys
+            items:
+              - key: validator-$(POD_INDEX)
+                path: nodekey
+        {{- else if .Values.validators.keys.existingSecrets }}
+        # Keys from individual secrets - mounted via subPath per pod
+        - name: keys
+          projected:
+            sources:
+            {{- range $i, $secret := .Values.validators.keys.existingSecrets }}
+              - secret:
+                  name: {{ $secret.name }}
+                  items:
+                    - key: {{ $secret.key | default "nodekey" }}
+                      path: nodekey-{{ $i }}
+            {{- end }}
+        {{- else if .Values.validators.keys.existingSecret.name }}
+        - name: keys
+          secret:
+            secretName: {{ .Values.validators.keys.existingSecret.name }}
+        {{- end }}
+        {{- with .Values.validators.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.validators.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.validators.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.validators.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.validators.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "besu-stack.immutableLabels" . | nindent 10 }}
+          app.kubernetes.io/component: validator
+          {{- with .Values.validators.persistence.labels }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+        {{- with .Values.validators.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          - {{ .Values.validators.persistence.accessMode }}
+        {{- if .Values.validators.persistence.storageClass }}
+        storageClassName: {{ .Values.validators.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.validators.persistence.size }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,27 @@
+# Low Performance Tier - Development/Testing
+# Suitable for: Local development, CI/CD pipelines, quick testing
+#
+# Usage:
+#   ./install.sh devnet -c aws -p low
+
+validators:
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+  persistence:
+    size: 10Gi
+
+rpcNodes:
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+  persistence:
+    size: 10Gi

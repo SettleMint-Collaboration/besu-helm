@@ -1,0 +1,19 @@
+{{- if .Values.validators.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "besu-stack.fullname" . }}-static-nodes
+  labels:
+    {{- include "besu-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: config
+  {{- with (include "besu-stack.annotations" .) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+data:
+  # Static nodes list - will be populated with validator enode URLs
+  # This is a placeholder that gets updated by the init container
+  # or by setting discovery.bootnodes in values
+  static-nodes.json: |
+    {{ include "besu-stack.staticNodes" . }}
+{{- end }}

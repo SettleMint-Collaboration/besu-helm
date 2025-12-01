@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "besu-stack.fullname" . }}-genesis
+  labels:
+    {{- include "besu-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: config
+  {{- with (include "besu-stack.annotations" .) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+data:
+  genesis.json: |
+    {{- .Values.genesis.raw | nindent 4 }}

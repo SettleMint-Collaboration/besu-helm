@@ -1,0 +1,143 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "besu-stack.fullname" . }}-validators
+  labels:
+    {{- include "besu-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: validator
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "besu-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: validator
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow P2P from all validators and RPC nodes
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "besu-stack.selectorLabels" . | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.validators.p2p.port }}
+        - protocol: UDP
+          port: {{ .Values.validators.p2p.port }}
+    # Allow RPC from within cluster
+    {{- if .Values.validators.rpc.http.enabled }}
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.validators.rpc.http.port }}
+    {{- end }}
+    # Allow metrics scraping
+    {{- if .Values.validators.metrics.enabled }}
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.validators.metrics.port }}
+    {{- end }}
+    {{- with .Values.networkPolicy.additionalIngressRules }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  egress:
+    # Allow P2P to all validators and RPC nodes
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "besu-stack.selectorLabels" . | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.validators.p2p.port }}
+        - protocol: UDP
+          port: {{ .Values.validators.p2p.port }}
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    {{- with .Values.networkPolicy.additionalEgressRules }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "besu-stack.fullname" . }}-rpc
+  labels:
+    {{- include "besu-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rpc
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "besu-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: rpc
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow P2P from all validators and RPC nodes
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "besu-stack.selectorLabels" . | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.rpcNodes.p2p.port }}
+        - protocol: UDP
+          port: {{ .Values.rpcNodes.p2p.port }}
+    # Allow RPC from anywhere (for ingress)
+    {{- if .Values.rpcNodes.rpc.http.enabled }}
+    - from: []
+      ports:
+        - protocol: TCP
+          port: {{ .Values.rpcNodes.rpc.http.port }}
+    {{- end }}
+    {{- if .Values.rpcNodes.rpc.ws.enabled }}
+    - from: []
+      ports:
+        - protocol: TCP
+          port: {{ .Values.rpcNodes.rpc.ws.port }}
+    {{- end }}
+    # Allow metrics scraping
+    {{- if .Values.rpcNodes.metrics.enabled }}
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.rpcNodes.metrics.port }}
+    {{- end }}
+    {{- with .Values.networkPolicy.additionalIngressRules }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  egress:
+    # Allow P2P to validators
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "besu-stack.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: validator
+      ports:
+        - protocol: TCP
+          port: {{ .Values.validators.p2p.port }}
+        - protocol: UDP
+          port: {{ .Values.validators.p2p.port }}
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    {{- with .Values.networkPolicy.additionalEgressRules }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}

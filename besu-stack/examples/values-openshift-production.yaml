@@ -1,0 +1,59 @@
+# Besu Stack - OpenShift Production Configuration
+# Use this for OpenShift production deployments
+
+openshift:
+  enabled: true
+
+validators:
+  replicas: 7
+  resources:
+    requests:
+      cpu: "4"
+      memory: "16Gi"
+    limits:
+      cpu: "8"
+      memory: "32Gi"
+  persistence:
+    size: 500Gi
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: validator
+            topologyKey: kubernetes.io/hostname
+
+rpcNodes:
+  replicas: 3
+  resources:
+    requests:
+      cpu: "2"
+      memory: "8Gi"
+    limits:
+      cpu: "4"
+      memory: "16Gi"
+  persistence:
+    size: 1Ti
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: rpc
+            topologyKey: kubernetes.io/hostname
+
+podDisruptionBudget:
+  validators:
+    enabled: true
+    minAvailable: 5
+  rpcNodes:
+    enabled: true
+    minAvailable: 2
+
+serviceMonitor:
+  enabled: true
+  interval: 30s

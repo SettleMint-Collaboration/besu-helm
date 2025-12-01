@@ -1,0 +1,30 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":automergeMinor",
+    ":automergePr",
+    ":automergeRequireAllStatusChecks",
+    ":gitSignOff",
+    ":pinAllExceptPeerDependencies",
+    ":semanticCommits",
+    ":semanticCommitTypeAll(chore)",
+    ":enableVulnerabilityAlerts",
+    ":combinePatchMinorReleases",
+    ":prConcurrentLimitNone",
+    ":prHourlyLimitNone",
+    ":widenPeerDependencies",
+    ":updateNotScheduled",
+    "security:openssf-scorecard",
+    "schedule:nonOfficeHours",
+    "customManagers:biomeVersions"
+  ],
+  "labels": ["dependencies"],
+  "rebaseWhen": "conflicted",
+  "packageRules": [],
+  "hostRules": [
+    {
+      "timeout": 3000000
+    }
+  ]
+}

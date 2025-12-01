@@ -1,0 +1,51 @@
+{{- if .Values.validators.enabled }}
+# Headless service for stable DNS discovery
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "besu-stack.validators.serviceName" . }}
+  labels:
+    {{- include "besu-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: validator
+  {{- with (include "besu-stack.annotations" .) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.service.validatorAnnotations }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  clusterIP: None  # Headless service for StatefulSet DNS
+  publishNotReadyAddresses: true  # Allow discovery before pods are ready
+  selector:
+    {{- include "besu-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: validator
+  ports:
+    - name: p2p-tcp
+      port: {{ .Values.validators.p2p.port }}
+      targetPort: p2p-tcp
+      protocol: TCP
+    - name: p2p-udp
+      port: {{ .Values.validators.p2p.port }}
+      targetPort: p2p-udp
+      protocol: UDP
+    {{- if .Values.validators.rpc.http.enabled }}
+    - name: http-rpc
+      port: {{ .Values.validators.rpc.http.port }}
+      targetPort: http-rpc
+      protocol: TCP
+    {{- end }}
+    {{- if .Values.validators.rpc.ws.enabled }}
+    - name: ws-rpc
+      port: {{ .Values.validators.rpc.ws.port }}
+      targetPort: ws-rpc
+      protocol: TCP
+    {{- end }}
+    {{- if .Values.validators.metrics.enabled }}
+    - name: metrics
+      port: {{ .Values.validators.metrics.port }}
+      targetPort: metrics
+      protocol: TCP
+    {{- end }}
+{{- end }}

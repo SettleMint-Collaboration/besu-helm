@@ -1,0 +1,555 @@
+# Besu Stack Helm Chart Values
+# https://github.com/settlemint/besu-helm
+#
+# =============================================================================
+# MULTI-CLOUD PERFORMANCE GUIDE
+# =============================================================================
+#
+# This chart supports AWS EKS, Google GKE, and Azure AKS with optimized
+# configurations for blockchain node workloads (high IOPS requirements).
+#
+# PERFORMANCE TIERS (for storage-intensive blockchain nodes):
+# -----------------------------------------------------------
+# | Tier   | IOPS     | Throughput | Use Case              |
+# |--------|----------|------------|------------------------|
+# | Low    | 3,000    | 125 MB/s   | Development/Testing    |
+# | Medium | 16,000   | 500 MB/s   | Testnet nodes          |
+# | High   | 64,000+  | 1,000 MB/s | Production mainnet     |
+#
+# STORAGE CLASS QUICK REFERENCE:
+# ------------------------------
+# AWS:   gp3 (low) | gp3+provisioned (medium) | io2 (high)
+# GKE:   standard-rwo (low) | premium-rwo (medium) | hyperdisk-extreme (high)
+# Azure: managed-csi (low) | managed-csi-premium (medium) | managed-csi-premium-v2 (high)
+#
+# =============================================================================
+
+# -- Global settings
+global:
+  # -- Image registry to use for all images
+  imageRegistry: ""
+  # -- Image pull secrets for all pods
+  imagePullSecrets: []
+
+# -- Image pull secrets (can also use global.imagePullSecrets)
+imagePullSecrets: []
+  # - harbor-registry
+
+# -- Override chart name
+nameOverride: ""
+# -- Override full name
+fullnameOverride: ""
+
+# =============================================================================
+# GENESIS CONFIGURATION
+# =============================================================================
+# Genesis configuration from network bootstrapper CLI output.
+# This should contain the complete genesis.json content for your network.
+# Use the network bootstrapper CLI to generate this configuration.
+
+genesis:
+  # -- Complete genesis.json content (required)
+  # This is the full genesis configuration for your Besu network.
+  # Generate using: besu operator generate-blockchain-config
+  raw: |
+    {
+      "config": {
+        "chainId": 1337,
+        "berlinBlock": 0,
+        "qbft": {
+          "blockperiodseconds": 5,
+          "epochlength": 30000,
+          "requesttimeoutseconds": 10
+        }
+      },
+      "nonce": "0x0",
+      "timestamp": "0x0",
+      "gasLimit": "0x1fffffffffffff",
+      "difficulty": "0x1",
+      "mixHash": "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365",
+      "coinbase": "0x0000000000000000000000000000000000000000",
+      "alloc": {},
+      "extraData": "0x"
+    }
+
+# =============================================================================
+# VALIDATOR NODES
+# =============================================================================
+# Validator nodes participate in consensus (QBFT/IBFT).
+# Each validator must have a unique private key.
+
+validators:
+  # -- Enable validator nodes
+  enabled: true
+
+  # -- Number of validator replicas (minimum 4 for QBFT fault tolerance)
+  replicas: 4
+
+  # -- Image configuration
+  image:
+    # -- Image registry
+    registry: docker.io
+    # -- Image repository
+    repository: hyperledger/besu
+    # -- Image tag (defaults to appVersion)
+    tag: ""
+    # -- Image pull policy
+    pullPolicy: IfNotPresent
+
+  # -- Validator key management
+  # Supports three modes:
+  # 1. inline: Keys directly in values (development only)
+  # 2. existingSecrets: Array of pre-existing secrets (one per validator)
+  # 3. existingSecret: Single secret with all keys (using keyPrefix)
+  keys:
+    # -- Inline keys (DEVELOPMENT ONLY - not recommended for production)
+    # Each entry should have: privateKey, publicKey (optional), nodeAddress (optional)
+    inline: []
+      # - privateKey: "0x..."
+      #   publicKey: "0x..."
+      #   nodeAddress: "0x..."
+
+    # -- Pre-existing secrets for each validator
+    # Each secret should contain the private key file
+    existingSecrets: []
+      # - name: validator-0-key
+      #   key: nodekey
+      # - name: validator-1-key
+      #   key: nodekey
+
+    # -- Single secret containing all validator keys
+    # Keys should be named: <keyPrefix>0, <keyPrefix>1, etc.
+    existingSecret:
+      # -- Secret name
+      name: ""
+      # -- Key prefix in the secret
+      keyPrefix: "validator-"
+
+  # -- P2P network configuration
+  p2p:
+    # -- P2P port for peer discovery
+    port: 30303
+
+  # -- RPC configuration for validators (limited API for security)
+  rpc:
+    http:
+      # -- Enable HTTP RPC
+      enabled: true
+      # -- HTTP RPC port
+      port: 8545
+      # -- Exposed RPC APIs (keep minimal for validators)
+      api: "ETH,NET,QBFT"
+    ws:
+      # -- Enable WebSocket RPC
+      enabled: false
+      # -- WebSocket RPC port
+      port: 8546
+
+  # -- Metrics configuration
+  metrics:
+    # -- Enable Prometheus metrics
+    enabled: true
+    # -- Metrics port
+    port: 9545
+
+  # -- Persistent storage configuration
+  persistence:
+    # -- Enable persistent storage
+    enabled: true
+    # -- Storage size
+    size: 100Gi
+    # -- Storage class (empty uses cluster default)
+    storageClass: ""
+    # -- Access mode
+    accessMode: ReadWriteOnce
+    # -- PVC annotations (cloud-specific tuning)
+    annotations: {}
+    # -- PVC labels
+    labels: {}
+
+  # -- Resource requests and limits
+  resources:
+    requests:
+      cpu: "1"
+      memory: "4Gi"
+    limits:
+      cpu: "2"
+      memory: "8Gi"
+
+  # -- Pod security context (ignored if openshift.enabled)
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+  # -- Container security context (ignored if openshift.enabled)
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+
+  # -- Startup probe (allows long initial sync time)
+  startupProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 60
+    timeoutSeconds: 10
+    failureThreshold: 60
+
+  # -- Liveness probe
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  # -- Readiness probe
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  # -- Node selector
+  nodeSelector: {}
+
+  # -- Tolerations
+  tolerations: []
+
+  # -- Affinity rules (anti-affinity recommended for HA)
+  affinity: {}
+
+  # -- Extra command line arguments
+  extraArgs: []
+
+  # -- Extra environment variables
+  extraEnv: []
+
+  # -- Extra volume mounts
+  extraVolumeMounts: []
+
+  # -- Extra volumes
+  extraVolumes: []
+
+# =============================================================================
+# RPC NODES
+# =============================================================================
+# RPC nodes do not participate in consensus.
+# They sync from validators and expose APIs for external access.
+
+rpcNodes:
+  # -- Enable RPC nodes
+  enabled: true
+
+  # -- Number of RPC node replicas
+  replicas: 2
+
+  # -- Image configuration (inherits from validators if not specified)
+  image:
+    # -- Image registry (uses validators.image.registry if empty)
+    registry: ""
+    # -- Image repository (uses validators.image.repository if empty)
+    repository: ""
+    # -- Image tag (uses validators.image.tag if empty)
+    tag: ""
+    # -- Image pull policy
+    pullPolicy: IfNotPresent
+
+  # -- RPC node key management (optional - keys auto-generated if not provided)
+  keys:
+    # -- Inline keys (DEVELOPMENT ONLY)
+    inline: []
+    # -- Pre-existing secrets for each RPC node
+    existingSecrets: []
+    # -- Single secret containing all RPC node keys
+    existingSecret:
+      name: ""
+      keyPrefix: "rpc-"
+
+  # -- P2P network configuration
+  p2p:
+    # -- P2P port
+    port: 30303
+
+  # -- RPC configuration (full API access)
+  rpc:
+    http:
+      # -- Enable HTTP RPC
+      enabled: true
+      # -- HTTP RPC port
+      port: 8545
+      # -- Exposed RPC APIs
+      api: "ETH,NET,WEB3,ADMIN,DEBUG,TRACE,TXPOOL"
+      # -- CORS origins
+      corsOrigins: "*"
+      # -- Host allowlist
+      hostAllowlist: "*"
+    ws:
+      # -- Enable WebSocket RPC
+      enabled: true
+      # -- WebSocket RPC port
+      port: 8546
+      # -- WebSocket API
+      api: "ETH,NET,WEB3"
+    graphql:
+      # -- Enable GraphQL
+      enabled: false
+      # -- GraphQL port
+      port: 8547
+
+  # -- Metrics configuration
+  metrics:
+    # -- Enable Prometheus metrics
+    enabled: true
+    # -- Metrics port
+    port: 9545
+
+  # -- Persistent storage configuration
+  persistence:
+    # -- Enable persistent storage
+    enabled: true
+    # -- Storage size
+    size: 200Gi
+    # -- Storage class
+    storageClass: ""
+    # -- Access mode
+    accessMode: ReadWriteOnce
+    # -- PVC annotations
+    annotations: {}
+    # -- PVC labels
+    labels: {}
+
+  # -- Resource requests and limits
+  resources:
+    requests:
+      cpu: "1"
+      memory: "4Gi"
+    limits:
+      cpu: "2"
+      memory: "8Gi"
+
+  # -- Pod security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+  # -- Container security context
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+
+  # -- Startup probe
+  startupProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 60
+    timeoutSeconds: 10
+    failureThreshold: 60
+
+  # -- Liveness probe
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  # -- Readiness probe
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  # -- Node selector
+  nodeSelector: {}
+
+  # -- Tolerations
+  tolerations: []
+
+  # -- Affinity rules
+  affinity: {}
+
+  # -- Extra command line arguments
+  extraArgs: []
+
+  # -- Extra environment variables
+  extraEnv: []
+
+  # -- Extra volume mounts
+  extraVolumeMounts: []
+
+  # -- Extra volumes
+  extraVolumes: []
+
+# =============================================================================
+# NETWORK DISCOVERY
+# =============================================================================
+
+discovery:
+  # -- Static bootnodes (auto-generated from validators if empty)
+  # Format: enode://<pubkey>@<host>:<port>
+  bootnodes: []
+
+  # -- Enable DNS-based discovery in Kubernetes
+  dnsEnabled: true
+
+# =============================================================================
+# SERVICE ACCOUNT
+# =============================================================================
+
+serviceAccount:
+  # -- Create a service account
+  create: true
+  # -- Service account name (auto-generated if empty)
+  name: ""
+  # -- Annotations for service account
+  annotations: {}
+  # -- Automount API credentials
+  automountServiceAccountToken: true
+
+# =============================================================================
+# RBAC
+# =============================================================================
+
+rbac:
+  # -- Create RBAC resources
+  create: true
+
+# =============================================================================
+# NETWORK POLICIES
+# =============================================================================
+
+networkPolicy:
+  # -- Enable network policies
+  enabled: false
+  # -- Additional ingress rules
+  additionalIngressRules: []
+  # -- Additional egress rules
+  additionalEgressRules: []
+
+# =============================================================================
+# POD DISRUPTION BUDGET
+# =============================================================================
+
+podDisruptionBudget:
+  # -- Enable PDB for validators
+  validators:
+    enabled: true
+    # -- Minimum available validators (should maintain quorum)
+    minAvailable: 3
+  # -- Enable PDB for RPC nodes
+  rpcNodes:
+    enabled: true
+    # -- Minimum available RPC nodes
+    minAvailable: 1
+
+# =============================================================================
+# INGRESS CONFIGURATION
+# =============================================================================
+
+ingress:
+  # -- Enable ingress
+  enabled: false
+
+  # -- Ingress type: ingress, httpproxy (Contour), httproute (Gateway API)
+  type: ingress
+
+  # -- Ingress class name
+  className: ""
+
+  # -- Hostname for ingress
+  hostname: ""
+
+  # -- TLS configuration
+  tls:
+    # -- Enable TLS
+    enabled: false
+    # -- Secret name for TLS certificate
+    secretName: ""
+
+  # -- Ingress annotations
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+
+  # -- Contour HTTPProxy specific settings
+  httpproxy:
+    # -- Response timeout (useful for long RPC calls)
+    responseTimeout: 300s
+    # -- Idle timeout
+    idleTimeout: 60s
+
+# =============================================================================
+# SERVICE CONFIGURATION
+# =============================================================================
+
+service:
+  # -- RPC service type
+  rpcType: ClusterIP
+  # -- Validator service type (should remain ClusterIP for security)
+  validatorType: ClusterIP
+  # -- Annotations for RPC service
+  rpcAnnotations: {}
+  # -- Annotations for validator service
+  validatorAnnotations: {}
+
+# =============================================================================
+# PROMETHEUS SERVICEMONITOR
+# =============================================================================
+
+serviceMonitor:
+  # -- Enable ServiceMonitor for Prometheus Operator
+  enabled: false
+  # -- Scrape interval
+  interval: 30s
+  # -- Scrape timeout
+  scrapeTimeout: 10s
+  # -- Additional labels
+  labels: {}
+  # -- Metric relabelings
+  metricRelabelings: []
+  # -- Relabelings
+  relabelings: []
+
+# =============================================================================
+# OPENSHIFT CONFIGURATION
+# =============================================================================
+
+openshift:
+  # -- Enable OpenShift-specific configurations
+  # Sets appropriate security contexts for restricted SCC
+  enabled: false
+
+# =============================================================================
+# PRIORITY CLASS
+# =============================================================================
+
+# -- Priority class name for pods
+priorityClassName: ""
+
+# =============================================================================
+# COMMON ANNOTATIONS
+# =============================================================================
+
+# -- Common annotations for all resources
+commonAnnotations: {}
+
+# -- Common labels for all resources
+commonLabels: {}
+
+# -- Pod annotations
+podAnnotations: {}

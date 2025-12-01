@@ -1,0 +1,19 @@
+# Besu Stack - TLS with cert-manager Configuration
+# Use with cert-manager for automatic certificate management
+
+rpcNodes:
+  service:
+    type: ClusterIP
+
+ingress:
+  enabled: true
+  className: nginx
+  hostname: besu-rpc.example.com
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+  tls:
+    enabled: true
+    secretName: besu-rpc-tls

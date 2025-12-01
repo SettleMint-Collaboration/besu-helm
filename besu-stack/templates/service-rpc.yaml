@@ -1,0 +1,82 @@
+{{- if .Values.rpcNodes.enabled }}
+# RPC service for external access
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "besu-stack.rpcNodes.serviceName" . }}
+  labels:
+    {{- include "besu-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rpc
+  {{- with (include "besu-stack.annotations" .) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.service.rpcAnnotations }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.rpcType }}
+  selector:
+    {{- include "besu-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: rpc
+  ports:
+    {{- if .Values.rpcNodes.rpc.http.enabled }}
+    - name: http-rpc
+      port: {{ .Values.rpcNodes.rpc.http.port }}
+      targetPort: http-rpc
+      protocol: TCP
+    {{- end }}
+    {{- if .Values.rpcNodes.rpc.ws.enabled }}
+    - name: ws-rpc
+      port: {{ .Values.rpcNodes.rpc.ws.port }}
+      targetPort: ws-rpc
+      protocol: TCP
+    {{- end }}
+    {{- if .Values.rpcNodes.rpc.graphql.enabled }}
+    - name: graphql
+      port: {{ .Values.rpcNodes.rpc.graphql.port }}
+      targetPort: graphql
+      protocol: TCP
+    {{- end }}
+    {{- if .Values.rpcNodes.metrics.enabled }}
+    - name: metrics
+      port: {{ .Values.rpcNodes.metrics.port }}
+      targetPort: metrics
+      protocol: TCP
+    {{- end }}
+---
+# Headless service for RPC StatefulSet DNS
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "besu-stack.rpcNodes.serviceName" . }}-headless
+  labels:
+    {{- include "besu-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rpc
+  {{- with (include "besu-stack.annotations" .) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    {{- include "besu-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: rpc
+  ports:
+    - name: p2p-tcp
+      port: {{ .Values.rpcNodes.p2p.port }}
+      targetPort: p2p-tcp
+      protocol: TCP
+    - name: p2p-udp
+      port: {{ .Values.rpcNodes.p2p.port }}
+      targetPort: p2p-udp
+      protocol: UDP
+    {{- if .Values.rpcNodes.rpc.http.enabled }}
+    - name: http-rpc
+      port: {{ .Values.rpcNodes.rpc.http.port }}
+      targetPort: http-rpc
+      protocol: TCP
+    {{- end }}
+{{- end }}

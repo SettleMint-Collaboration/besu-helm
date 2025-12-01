@@ -1,0 +1,249 @@
+{{- if .Values.rpcNodes.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "besu-stack.fullname" . }}-rpc
+  labels:
+    {{- include "besu-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rpc
+  {{- with (include "besu-stack.annotations" .) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+spec:
+  serviceName: {{ include "besu-stack.rpcNodes.serviceName" . }}
+  replicas: {{ .Values.rpcNodes.replicas }}
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      {{- include "besu-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: rpc
+  template:
+    metadata:
+      labels:
+        {{- include "besu-stack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: rpc
+      annotations:
+        {{- include "besu-stack.podAnnotations" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "besu-stack.serviceAccountName" . }}
+      {{- include "besu-stack.imagePullSecrets" . | nindent 6 }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      terminationGracePeriodSeconds: 300
+      {{- if not .Values.openshift.enabled }}
+      securityContext:
+        {{- toYaml .Values.rpcNodes.podSecurityContext | nindent 8 }}
+      {{- else }}
+      securityContext:
+        {{- include "besu-stack.openshiftPodSecurityContext" . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: init-directories
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /data/besu
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          {{- if not .Values.openshift.enabled }}
+          securityContext:
+            {{- toYaml .Values.rpcNodes.containerSecurityContext | nindent 12 }}
+          {{- else }}
+          securityContext:
+            {{- include "besu-stack.openshiftContainerSecurityContext" . | nindent 12 }}
+          {{- end }}
+        {{- if .Values.validators.enabled }}
+        - name: wait-for-validators
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for validators to be ready..."
+              # Wait for at least one validator to be reachable
+              until nc -z {{ include "besu-stack.validators.serviceName" . }}-0.{{ include "besu-stack.validators.serviceName" . }}.{{ .Release.Namespace }}.svc.cluster.local {{ .Values.validators.p2p.port }}; do
+                echo "Waiting for validator-0..."
+                sleep 5
+              done
+              echo "Validators are ready!"
+          {{- if not .Values.openshift.enabled }}
+          securityContext:
+            runAsUser: 1000
+            runAsNonRoot: true
+          {{- else }}
+          securityContext:
+            {{- include "besu-stack.openshiftContainerSecurityContext" . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+      containers:
+        - name: besu
+          image: {{ include "besu-stack.rpcNodes.image" . }}
+          imagePullPolicy: {{ .Values.rpcNodes.image.pullPolicy }}
+          {{- if not .Values.openshift.enabled }}
+          securityContext:
+            {{- toYaml .Values.rpcNodes.containerSecurityContext | nindent 12 }}
+          {{- else }}
+          securityContext:
+            {{- include "besu-stack.openshiftContainerSecurityContext" . | nindent 12 }}
+          {{- end }}
+          args:
+            {{- include "besu-stack.rpcNodes.args" . | nindent 12 }}
+            {{- /* Add bootnodes pointing to validators */ -}}
+            {{- if .Values.validators.enabled }}
+            - --bootnodes={{ include "besu-stack.bootnodes" . }}
+            {{- end }}
+          ports:
+            - name: p2p-tcp
+              containerPort: {{ .Values.rpcNodes.p2p.port }}
+              protocol: TCP
+            - name: p2p-udp
+              containerPort: {{ .Values.rpcNodes.p2p.port }}
+              protocol: UDP
+            {{- if .Values.rpcNodes.rpc.http.enabled }}
+            - name: http-rpc
+              containerPort: {{ .Values.rpcNodes.rpc.http.port }}
+              protocol: TCP
+            {{- end }}
+            {{- if .Values.rpcNodes.rpc.ws.enabled }}
+            - name: ws-rpc
+              containerPort: {{ .Values.rpcNodes.rpc.ws.port }}
+              protocol: TCP
+            {{- end }}
+            {{- if .Values.rpcNodes.rpc.graphql.enabled }}
+            - name: graphql
+              containerPort: {{ .Values.rpcNodes.rpc.graphql.port }}
+              protocol: TCP
+            {{- end }}
+            {{- if .Values.rpcNodes.metrics.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.rpcNodes.metrics.port }}
+              protocol: TCP
+            {{- end }}
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: BESU_P2P_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            {{- with .Values.rpcNodes.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          startupProbe:
+            tcpSocket:
+              port: {{ .Values.rpcNodes.rpc.http.port | default 8545 }}
+            initialDelaySeconds: {{ .Values.rpcNodes.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.rpcNodes.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.rpcNodes.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.rpcNodes.startupProbe.failureThreshold }}
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.rpcNodes.rpc.http.port | default 8545 }}
+            initialDelaySeconds: {{ .Values.rpcNodes.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.rpcNodes.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.rpcNodes.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.rpcNodes.livenessProbe.failureThreshold }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.rpcNodes.rpc.http.port | default 8545 }}
+            initialDelaySeconds: {{ .Values.rpcNodes.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.rpcNodes.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.rpcNodes.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.rpcNodes.readinessProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.rpcNodes.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: genesis
+              mountPath: /etc/genesis
+              readOnly: true
+            {{- if include "besu-stack.rpcNodes.hasKeys" . }}
+            - name: keys
+              mountPath: /secrets
+              readOnly: true
+            {{- end }}
+            - name: tmp
+              mountPath: /tmp
+            {{- with .Values.rpcNodes.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: genesis
+          configMap:
+            name: {{ include "besu-stack.fullname" . }}-genesis
+        - name: tmp
+          emptyDir: {}
+        {{- if .Values.rpcNodes.keys.inline }}
+        - name: keys
+          secret:
+            secretName: {{ include "besu-stack.fullname" . }}-rpc-keys
+        {{- else if .Values.rpcNodes.keys.existingSecrets }}
+        - name: keys
+          projected:
+            sources:
+            {{- range $i, $secret := .Values.rpcNodes.keys.existingSecrets }}
+              - secret:
+                  name: {{ $secret.name }}
+                  items:
+                    - key: {{ $secret.key | default "nodekey" }}
+                      path: nodekey-{{ $i }}
+            {{- end }}
+        {{- else if .Values.rpcNodes.keys.existingSecret.name }}
+        - name: keys
+          secret:
+            secretName: {{ .Values.rpcNodes.keys.existingSecret.name }}
+        {{- end }}
+        {{- with .Values.rpcNodes.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.rpcNodes.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.rpcNodes.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.rpcNodes.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.rpcNodes.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "besu-stack.immutableLabels" . | nindent 10 }}
+          app.kubernetes.io/component: rpc
+          {{- with .Values.rpcNodes.persistence.labels }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+        {{- with .Values.rpcNodes.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          - {{ .Values.rpcNodes.persistence.accessMode }}
+        {{- if .Values.rpcNodes.persistence.storageClass }}
+        storageClassName: {{ .Values.rpcNodes.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.rpcNodes.persistence.size }}
+  {{- end }}
+{{- end }}

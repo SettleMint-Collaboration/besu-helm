@@ -1,0 +1,44 @@
+# Azure AKS Cloud Provider Values
+# Layer this on top of your base values file
+#
+# Usage:
+#   ./install.sh devnet -c azure -p low
+#   ./install.sh testnet -c azure -p medium
+#   ./install.sh production -c azure -p high
+
+# Storage - AKS uses default storage class
+# Leave empty for cluster default, or specify managed-premium if available
+validators:
+  persistence:
+    storageClass: "" # Uses cluster default
+  # Spread across availability zones
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: validator
+            topologyKey: topology.kubernetes.io/zone
+  nodeSelector:
+    kubernetes.io/os: linux
+
+rpcNodes:
+  persistence:
+    storageClass: "" # Uses cluster default
+  service:
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: rpc
+            topologyKey: topology.kubernetes.io/zone
+  nodeSelector:
+    kubernetes.io/os: linux

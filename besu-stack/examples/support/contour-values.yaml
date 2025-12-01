@@ -1,0 +1,44 @@
+# Contour Helm Chart Values
+# Install with: helm install contour bitnami/contour -f contour-values.yaml -n projectcontour --create-namespace
+
+# Enable Envoy as the data plane
+envoy:
+  kind: deployment
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  service:
+    type: LoadBalancer
+    annotations: {}
+
+# Contour control plane
+contour:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# Enable metrics for Prometheus
+metrics:
+  contour:
+    enabled: true
+  envoy:
+    enabled: true
+
+# Default TLS settings
+defaultTLSSecret: ""
+
+# IngressClass configuration
+ingressClass:
+  name: contour
+  create: true
+  default: false

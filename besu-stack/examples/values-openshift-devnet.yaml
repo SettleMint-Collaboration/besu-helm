@@ -1,0 +1,35 @@
+# Besu Stack - OpenShift Development Configuration
+# Use this for OpenShift development clusters
+
+openshift:
+  enabled: true
+
+validators:
+  replicas: 4
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+  persistence:
+    size: 10Gi
+
+rpcNodes:
+  replicas: 1
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+  persistence:
+    size: 10Gi
+
+podDisruptionBudget:
+  validators:
+    enabled: false
+  rpcNodes:
+    enabled: false

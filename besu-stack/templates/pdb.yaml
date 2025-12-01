@@ -1,0 +1,31 @@
+{{- if and .Values.validators.enabled .Values.podDisruptionBudget.validators.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "besu-stack.fullname" . }}-validators
+  labels:
+    {{- include "besu-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: validator
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.validators.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "besu-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: validator
+{{- end }}
+---
+{{- if and .Values.rpcNodes.enabled .Values.podDisruptionBudget.rpcNodes.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "besu-stack.fullname" . }}-rpc
+  labels:
+    {{- include "besu-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rpc
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.rpcNodes.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "besu-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: rpc
+{{- end }}

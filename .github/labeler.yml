@@ -1,0 +1,15 @@
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "*.md"
+          - "docs/**"
+
+chart:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "adi-stack/**"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
