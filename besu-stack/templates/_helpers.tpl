@@ -188,7 +188,7 @@ Priority:
 {{- if and $hasPublicKeys (lt $i (len $inlineKeys)) -}}
 {{- /* Build full enode URL with public key */ -}}
 {{- $key := index $inlineKeys $i -}}
-{{- $pubKey := $key.publicKey | replace "0x" "" -}}
+{{- $pubKey := $key.publicKey | replace "0x" "" | trimPrefix "04" -}}
 {{- $nodes = append $nodes (printf "enode://%s@%s:%d?discport=%d" $pubKey $host $port $port) -}}
 {{- else -}}
 {{- /* DNS-only format for DNS-based discovery */ -}}
