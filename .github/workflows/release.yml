@@ -100,7 +100,7 @@ jobs:
       - name: Push to Distr
         run: helm push ./besu-stack-*.tgz oci://pkg.distribution.settlemint.com/settlemint
 
-      - name: Push to Distr
+      - name: Push to Harbor
         run: helm push ./besu-stack-*.tgz oci://harbor.settlemint.com/besu-stack
 
       - name: Get chart version
