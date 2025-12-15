@@ -87,11 +87,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.DISTR_TOKEN }}
 
+      - name: Login to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: harbor.settlemint.com
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
       - name: Package Helm chart
         run: helm package besu-stack --destination .
 
       - name: Push to Distr
         run: helm push ./besu-stack-*.tgz oci://pkg.distribution.settlemint.com/settlemint
+
+      - name: Push to Distr
+        run: helm push ./besu-stack-*.tgz oci://harbor.settlemint.com/besu-stack
 
       - name: Get chart version
         id: chart-version
