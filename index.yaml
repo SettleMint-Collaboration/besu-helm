@@ -7,6 +7,40 @@ entries:
       artifacthub.io/operator: "false"
     apiVersion: v2
     appVersion: 25.11.0
+    created: "2025-12-15T13:59:37.696800723Z"
+    description: Production-ready Hyperledger Besu blockchain network deployment for
+      Kubernetes
+    digest: 093c95fc383995f1d23877339e1473a3135a63f4bc360cb22d2ebe368322ce9a
+    home: https://github.com/settlemint/besu-helm
+    icon: https://raw.githubusercontent.com/hyperledger/besu-docs/main/static/img/besu-logo.svg
+    keywords:
+    - blockchain
+    - besu
+    - hyperledger
+    - ethereum
+    - qbft
+    - ibft
+    - validator
+    - rpc
+    kubeVersion: '>=1.24.0-0'
+    maintainers:
+    - email: support@settlemint.com
+      name: SettleMint
+      url: https://settlemint.com
+    name: besu-stack
+    sources:
+    - https://github.com/settlemint/besu-helm
+    - https://github.com/hyperledger/besu
+    type: application
+    urls:
+    - https://github.com/SettleMint-Collaboration/besu-helm/releases/download/besu-stack-0.1.6/besu-stack-0.1.6.tgz
+    version: 0.1.6
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/license: MIT
+      artifacthub.io/operator: "false"
+    apiVersion: v2
+    appVersion: 25.11.0
     created: "2025-12-15T12:09:12.703250748Z"
     description: Production-ready Hyperledger Besu blockchain network deployment for
       Kubernetes
@@ -171,4 +205,4 @@ entries:
     urls:
     - https://github.com/SettleMint-Collaboration/besu-helm/releases/download/besu-stack-0.1.1/besu-stack-0.1.1.tgz
     version: 0.1.1
-generated: "2025-12-15T12:09:12.70327235Z"
+generated: "2025-12-15T13:59:37.69683642Z"
