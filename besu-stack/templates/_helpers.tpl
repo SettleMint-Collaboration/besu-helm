@@ -123,6 +123,17 @@ Return the proper image name for RPC nodes
 {{- end -}}
 
 {{/*
+Return the proper image name for init containers
+*/}}
+{{- define "besu-stack.initContainers.image" -}}
+{{- $registry := .Values.initContainers.image.registry -}}
+{{- if .Values.global.imageRegistry -}}
+{{- $registry = .Values.global.imageRegistry -}}
+{{- end -}}
+{{- printf "%s/%s:%s" $registry .Values.initContainers.image.repository .Values.initContainers.image.tag -}}
+{{- end -}}
+
+{{/*
 Return the validator headless service name
 */}}
 {{- define "besu-stack.validators.serviceName" -}}
