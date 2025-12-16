@@ -343,10 +343,18 @@ Image pull secrets (combining global and local)
 {{- define "besu-stack.imagePullSecrets" -}}
 {{- $pullSecrets := list }}
 {{- range .Values.global.imagePullSecrets }}
+{{- if kindIs "string" . }}
 {{- $pullSecrets = append $pullSecrets . }}
+{{- else if .name }}
+{{- $pullSecrets = append $pullSecrets .name }}
+{{- end }}
 {{- end }}
 {{- range .Values.imagePullSecrets }}
+{{- if kindIs "string" . }}
 {{- $pullSecrets = append $pullSecrets . }}
+{{- else if .name }}
+{{- $pullSecrets = append $pullSecrets .name }}
+{{- end }}
 {{- end }}
 {{- if $pullSecrets }}
 imagePullSecrets:
