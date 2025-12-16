@@ -10,7 +10,8 @@ metadata:
 spec:
   containers:
     - name: wget
-      image: busybox:1.36
+      image: {{ include "besu-stack.initContainers.image" . }}
+      imagePullPolicy: {{ .Values.initContainers.image.pullPolicy }}
       command:
         - sh
         - -c

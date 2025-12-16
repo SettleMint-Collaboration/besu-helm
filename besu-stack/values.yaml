@@ -34,6 +34,18 @@ global:
   #   - name: my-secret              # object format (standard K8s)
   imagePullSecrets: []
 
+# -- Init container image configuration (used for directory setup and waiting for dependencies)
+initContainers:
+  image:
+    # -- Image registry
+    registry: docker.io
+    # -- Image repository
+    repository: busybox
+    # -- Image tag
+    tag: "1.36"
+    # -- Image pull policy
+    pullPolicy: IfNotPresent
+
 # -- Image pull secrets (can also use global.imagePullSecrets)
 # Supports both string format ["my-secret"] and object format [{ name: "my-secret" }]
 imagePullSecrets: []

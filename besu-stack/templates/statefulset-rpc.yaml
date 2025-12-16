@@ -43,7 +43,8 @@ spec:
       {{- end }}
       initContainers:
         - name: init-directories
-          image: busybox:1.36
+          image: {{ include "besu-stack.initContainers.image" . }}
+          imagePullPolicy: {{ .Values.initContainers.image.pullPolicy }}
           command:
             - sh
             - -c
@@ -61,7 +62,8 @@ spec:
           {{- end }}
         {{- if .Values.validators.enabled }}
         - name: wait-for-validators
-          image: busybox:1.36
+          image: {{ include "besu-stack.initContainers.image" . }}
+          imagePullPolicy: {{ .Values.initContainers.image.pullPolicy }}
           command:
             - sh
             - -c
