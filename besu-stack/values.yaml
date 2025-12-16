@@ -28,12 +28,15 @@
 global:
   # -- Image registry to use for all images
   imageRegistry: ""
-  # -- Image pull secrets for all pods
+  # -- Image pull secrets for all pods (supports both string and object format)
+  # Examples:
+  #   - my-secret                    # string format
+  #   - name: my-secret              # object format (standard K8s)
   imagePullSecrets: []
 
 # -- Image pull secrets (can also use global.imagePullSecrets)
+# Supports both string format ["my-secret"] and object format [{ name: "my-secret" }]
 imagePullSecrets: []
-  # - harbor-registry
 
 # -- Override chart name
 nameOverride: ""
