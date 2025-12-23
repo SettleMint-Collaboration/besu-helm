@@ -11,7 +11,7 @@ metadata:
     {{- . | nindent 4 }}
   {{- end }}
 spec:
-  serviceName: {{ include "besu-stack.rpcNodes.serviceName" . }}
+  serviceName: {{ include "besu-stack.rpcNodes.serviceName" . }}-headless
   replicas: {{ .Values.rpcNodes.replicas }}
   podManagementPolicy: Parallel
   updateStrategy:
