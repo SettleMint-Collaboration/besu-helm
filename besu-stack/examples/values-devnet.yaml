@@ -39,6 +39,7 @@ genesis:
         "berlinBlock": 0,
         "londonBlock": 0,
         "shanghaiTime": 0,
+        "cancunTime": 0,
         "zeroBaseFee": true,
         "contractSizeLimit": 2147483647,
         "evmStackSize": 2048,
