@@ -42,7 +42,7 @@ initContainers:
     # -- Image repository
     repository: busybox
     # -- Image tag
-    tag: "1.36"
+    tag: "1.37"
     # -- Image pull policy
     pullPolicy: IfNotPresent
 
