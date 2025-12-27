@@ -2,8 +2,8 @@ apiVersion: v2
 name: besu-stack
 description: Production-ready Hyperledger Besu blockchain network deployment for Kubernetes
 type: application
-version: 0.1.10
-appVersion: "25.11.0"
+version: 0.1.11
+appVersion: "25.12.0"
 kubeVersion: ">=1.24.0-0"
 home: https://github.com/settlemint/besu-helm
 icon: https://raw.githubusercontent.com/hyperledger/besu-docs/main/static/img/besu-logo.svg
