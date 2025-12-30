@@ -1,0 +1,6 @@
+dependencies:
+- name: ethereum-metrics-exporter
+  repository: https://ethpandaops.github.io/ethereum-helm-charts
+  version: 0.2.0
+digest: sha256:a3a1a456084242f30357d16f32b9a5a01633a51efea67c028fc68c66e9d5b4dd
+generated: "2025-12-30T16:57:44.070847+02:00"

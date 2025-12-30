@@ -591,3 +591,60 @@ commonLabels: {}
 
 # -- Pod annotations
 podAnnotations: {}
+
+# =============================================================================
+# ETHEREUM METRICS EXPORTER
+# =============================================================================
+# Optional ethereum-metrics-exporter for enhanced blockchain monitoring.
+# Exposes execution layer metrics in Prometheus format.
+# Chart: https://github.com/ethpandaops/ethereum-helm-charts
+
+ethereum-metrics-exporter:
+  # -- Enable ethereum-metrics-exporter
+  enabled: false
+
+  # -- Override the full name
+  fullnameOverride: ""
+
+  # -- Resource requests and limits
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+
+  # -- Metrics exporter configuration
+  config:
+    # -- Consensus layer (beacon node) configuration
+    consensus:
+      # -- Enable consensus metrics (disabled for Besu QBFT networks)
+      enabled: false
+      # -- Consensus client name
+      name: ""
+      # -- Consensus client URL
+      url: ""
+
+    # -- Execution layer (Besu RPC) configuration
+    execution:
+      # -- Enable execution metrics
+      enabled: true
+      # -- Execution client name
+      name: "besu"
+      # -- Execution client RPC URL
+      # Default pattern: http://<release>-besu-stack-rpc:8545
+      # Set this when enabling the exporter, e.g.:
+      #   url: "http://my-release-besu-stack-rpc:8545"
+      url: ""
+      # -- RPC modules to query
+      modules:
+        - eth
+        - net
+        - web3
+
+  # -- Pod annotations for Prometheus scraping
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
