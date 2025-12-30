@@ -601,7 +601,7 @@ podAnnotations: {}
 
 ethereum-metrics-exporter:
   # -- Enable ethereum-metrics-exporter
-  enabled: false
+  enabled: true
 
   # -- Override the full name
   fullnameOverride: ""
@@ -633,10 +633,11 @@ ethereum-metrics-exporter:
       # -- Execution client name
       name: "besu"
       # -- Execution client RPC URL
-      # Default pattern: http://<release>-besu-stack-rpc:8545
+      # Default pattern: http://<release>-besu-stack-rpc-0.<release>-besu-stack-rpc-headless:8545
+      # Uses headless service for direct pod addressing (StatefulSet pattern)
       # Set this when enabling the exporter, e.g.:
-      #   url: "http://my-release-besu-stack-rpc:8545"
-      url: ""
+      #   url: "http://my-release-besu-stack-rpc-0.my-release-besu-stack-rpc-headless:8545"
+      url: "http://besu-stack-rpc-0.besu-stack-rpc-headless:8545"
       # -- RPC modules to query
       modules:
         - eth
