@@ -53,7 +53,7 @@ imagePullSecrets: []
 # -- Override chart name
 nameOverride: ""
 # -- Override full name
-fullnameOverride: ""
+fullnameOverride: "besu"
 
 # =============================================================================
 # GENESIS CONFIGURATION
