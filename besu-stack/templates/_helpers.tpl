@@ -454,8 +454,7 @@ Besu command args for RPC nodes - uses BONSAI storage for faster queries
 - --node-private-key-file=/secrets/nodekey
 {{- end }}
 - --static-nodes-file=/etc/besu/static-nodes.json
-# Storage and performance - BONSAI for RPC nodes
-- --data-storage-format=BONSAI
+- --data-storage-format=FOREST
 - --bonsai-limit-trie-logs-enabled=false
 - --cache-last-blocks=1024
 - --receipt-compaction-enabled=true
