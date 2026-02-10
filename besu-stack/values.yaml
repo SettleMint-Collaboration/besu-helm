@@ -34,6 +34,42 @@ global:
   #   - name: my-secret              # object format (standard K8s)
   imagePullSecrets: []
 
+  # -- CyberArk Conjur secret management integration
+  # Shared configuration used by both besu-stack and DALP charts.
+  # When enabled, validator private keys are fetched from Conjur at pod startup
+  # instead of being stored in Kubernetes Secrets.
+  # Prerequisites:
+  #   - Besu Docker image must include summon + summon-conjur binaries
+  #   - conjur-certificate ConfigMap must exist in the namespace
+  #   - Private keys must be stored in Conjur at the configured paths
+  conjur:
+    # -- Enable Conjur integration (default: false, no changes when disabled)
+    enabled: false
+    # -- CyberArk Conjur Kubernetes authenticator image
+    image:
+      registry: "image-registry.openshift-image-registry.svc:5000"
+      repository: "openshift/conjur-kubernetes-authenticator"
+      tag: "0.19.0"
+      pullPolicy: Always
+    # -- Conjur API version
+    version: "5"
+    # -- Conjur appliance URL (required when enabled)
+    applianceUrl: ""
+    # -- Conjur account name (required when enabled)
+    account: ""
+    # -- Conjur authentication URL (required when enabled)
+    authnUrl: ""
+    # -- Conjur authentication login (required when enabled)
+    authnLogin: ""
+    # -- Token refresh timeout
+    tokenTimeout: ""
+    # -- ConfigMap containing the Conjur SSL certificate
+    certificateConfigMap:
+      name: "conjur-certificate"
+      key: "ssl-certificate"
+    # -- Resource requests/limits for the authenticator init container
+    resources: {}
+
 # -- Init container image configuration (used for directory setup and waiting for dependencies)
 initContainers:
   image:
@@ -139,6 +175,12 @@ validators:
       name: ""
       # -- Key prefix in the secret
       keyPrefix: "validator-"
+
+  # -- Conjur-specific settings for validators (only used when global.conjur.enabled is true)
+  conjur:
+    # -- Conjur secret path template for validator private keys
+    # {{ordinal}} is replaced at runtime with the pod index (0, 1, 2, 3...)
+    keyPath: "besu/validators/{{ordinal}}/private-key"
 
   # -- P2P network configuration
   p2p:

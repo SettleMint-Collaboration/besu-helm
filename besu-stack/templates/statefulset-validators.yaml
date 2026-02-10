@@ -91,6 +91,7 @@ spec:
             {{- include "besu-stack.openshiftContainerSecurityContext" . | nindent 12 }}
           {{- end }}
         {{- end }}
+        {{- include "besu-stack.conjur.initContainer" . | nindent 8 }}
       containers:
         - name: besu
           image: {{ include "besu-stack.validators.image" . }}
@@ -102,6 +103,7 @@ spec:
           securityContext:
             {{- include "besu-stack.openshiftContainerSecurityContext" . | nindent 12 }}
           {{- end }}
+          {{- include "besu-stack.conjur.command" . | nindent 10 }}
           args:
             {{- include "besu-stack.validators.args" . | nindent 12 }}
           ports:
@@ -149,6 +151,7 @@ spec:
             {{- with .Values.validators.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+            {{- include "besu-stack.conjur.envVars" . | nindent 12 }}
           startupProbe:
             tcpSocket:
               port: {{ .Values.validators.rpc.http.port | default 8545 }}
@@ -185,8 +188,11 @@ spec:
             {{- if include "besu-stack.validators.hasKeys" . }}
             - name: keys
               mountPath: /secrets
+              {{- if not (include "besu-stack.conjur.enabled" .) }}
               readOnly: true
+              {{- end }}
             {{- end }}
+            {{- include "besu-stack.conjur.volumeMounts" . | nindent 12 }}
             - name: tmp
               mountPath: /tmp
             {{- with .Values.validators.extraVolumeMounts }}
@@ -201,7 +207,10 @@ spec:
             name: {{ include "besu-stack.staticNodesConfigMapName" . }}
         - name: tmp
           emptyDir: {}
-        {{- if .Values.validators.keys.inline }}
+        {{- if include "besu-stack.conjur.enabled" . }}
+        - name: keys
+          emptyDir: {}
+        {{- else if .Values.validators.keys.inline }}
         - name: keys-all
           secret:
             secretName: {{ include "besu-stack.fullname" . }}-validator-keys
@@ -224,6 +233,7 @@ spec:
           secret:
             secretName: {{ .Values.validators.keys.existingSecret.name }}
         {{- end }}
+        {{- include "besu-stack.conjur.volumes" . | nindent 8 }}
         {{- with .Values.validators.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

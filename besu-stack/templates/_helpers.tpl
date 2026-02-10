@@ -273,10 +273,10 @@ nodekey
 {{- end -}}
 
 {{/*
-Check if validators have keys configured
+Check if validators have keys configured (includes Conjur as a key source)
 */}}
 {{- define "besu-stack.validators.hasKeys" -}}
-{{- if or .Values.validators.keys.inline .Values.validators.keys.existingSecrets (and .Values.validators.keys.existingSecret .Values.validators.keys.existingSecret.name) -}}
+{{- if or .Values.validators.keys.inline .Values.validators.keys.existingSecrets (and .Values.validators.keys.existingSecret .Values.validators.keys.existingSecret.name) (include "besu-stack.conjur.enabled" .) -}}
 true
 {{- end -}}
 {{- end -}}

@@ -1,0 +1,70 @@
+# =============================================================================
+# CyberArk Conjur Integration Example
+# =============================================================================
+#
+# This example shows how to configure Besu validators to fetch private keys
+# from CyberArk Conjur instead of Kubernetes Secrets.
+#
+# Prerequisites:
+#   1. Besu Docker image must include summon + summon-conjur binaries:
+#      - summon v0.9.0 at /usr/local/bin/summon
+#      - summon-conjur v0.6.0 at /usr/local/lib/summon/summon-conjur
+#   2. Create the conjur-certificate ConfigMap in your namespace:
+#      kubectl create configmap conjur-certificate \
+#        --from-file=ssl-certificate=conjur.pem
+#   3. Store validator private keys in Conjur at the configured paths:
+#      besu/validators/0/private-key
+#      besu/validators/1/private-key
+#      besu/validators/2/private-key
+#      besu/validators/3/private-key
+#
+# Execution flow per pod (e.g., besu-validators-2):
+#   1. conjur-authenticator init container authenticates with Conjur
+#   2. Besu container wrapper script creates secrets.yml for ordinal 2
+#   3. summon fetches "besu/validators/2/private-key" from Conjur
+#   4. Key written to /secrets/nodekey
+#   5. besu starts with --node-private-key-file=/secrets/nodekey
+#
+# Usage:
+#   helm install besu ./besu-stack -f examples/values-conjur.yaml
+# =============================================================================
+
+global:
+  conjur:
+    enabled: true
+    image:
+      registry: "image-registry.openshift-image-registry.svc:5000"
+      repository: "openshift/conjur-kubernetes-authenticator"
+      tag: "0.19.0"
+      pullPolicy: Always
+    version: "5"
+    applianceUrl: "https://conjur.example.com"
+    account: "myorg"
+    authnUrl: "https://conjur.example.com/authn-k8s/my-authenticator"
+    authnLogin: "host/conjur/authn-k8s/my-authenticator/apps/besu"
+    tokenTimeout: ""
+    certificateConfigMap:
+      name: "conjur-certificate"
+      key: "ssl-certificate"
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+      limits:
+        cpu: "100m"
+        memory: "128Mi"
+
+validators:
+  enabled: true
+  replicas: 4
+
+  # Conjur key path template - {{ordinal}} is replaced with pod index at runtime
+  conjur:
+    keyPath: "besu/validators/{{ordinal}}/private-key"
+
+  # No inline keys or existingSecrets needed - Conjur provides the keys
+  keys:
+    inline: []
+    existingSecrets: []
+    existingSecret:
+      name: ""
