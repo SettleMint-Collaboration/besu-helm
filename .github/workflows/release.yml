@@ -80,13 +80,6 @@ jobs:
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Login to Distr
-        uses: docker/login-action@v3
-        with:
-          registry: pkg.distribution.settlemint.com
-          username: ${{ github.actor }}
-          password: ${{ secrets.DISTR_TOKEN }}
-
       - name: Login to Harbor
         uses: docker/login-action@v3
         with:
@@ -97,9 +90,6 @@ jobs:
       - name: Package Helm chart
         run: helm package besu-stack --destination .
 
-      - name: Push to Distr
-        run: helm push ./besu-stack-*.tgz oci://pkg.distribution.settlemint.com/settlemint
-
       - name: Push to Harbor
         run: helm push ./besu-stack-*.tgz oci://harbor.settlemint.com/besu-stack
 
@@ -108,15 +98,3 @@ jobs:
         run: |
           VERSION=$(grep '^version:' besu-stack/Chart.yaml | awk '{print $2}')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Create Distr Application Version
-        uses: glasskube/distr-create-version-action@v1
-        with:
-          api-base: "https://distribution.settlemint.com/api/v1"
-          api-token: ${{ secrets.DISTR_TOKEN }}
-          application-id: "77783d80-5ccf-4d12-807d-8df75533f5e4"
-          version-name: ${{ steps.chart-version.outputs.version }}
-          chart-type: "oci"
-          chart-url: oci://pkg.distribution.settlemint.com/settlemint/besu-stack
-          chart-version: ${{ steps.chart-version.outputs.version }}
-          base-values-file: ${{ github.workspace }}/besu-stack/values.yaml
