@@ -632,4 +632,7 @@ commonAnnotations: {}
 commonLabels: {}
 
 # -- Pod annotations
-podAnnotations: {}
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9545"
+  prometheus.io/path: "/metrics"
