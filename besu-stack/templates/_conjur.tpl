@@ -14,6 +14,26 @@ true
 {{- end -}}
 
 {{/*
+Validate required Conjur configuration when integration is enabled
+*/}}
+{{- define "besu-stack.conjur.validate" -}}
+{{- if include "besu-stack.conjur.enabled" . -}}
+{{- if not .Values.global.conjur.applianceUrl -}}
+{{- fail "global.conjur.applianceUrl is required when global.conjur.enabled=true" -}}
+{{- end -}}
+{{- if not .Values.global.conjur.account -}}
+{{- fail "global.conjur.account is required when global.conjur.enabled=true" -}}
+{{- end -}}
+{{- if not .Values.global.conjur.authnUrl -}}
+{{- fail "global.conjur.authnUrl is required when global.conjur.enabled=true" -}}
+{{- end -}}
+{{- if not .Values.global.conjur.authnLogin -}}
+{{- fail "global.conjur.authnLogin is required when global.conjur.enabled=true" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Return the Conjur authenticator image
 */}}
 {{- define "besu-stack.conjur.image" -}}
@@ -80,16 +100,12 @@ Authenticates with Conjur and writes access token to /run/conjur/access-token
 {{/*
 Render Conjur-specific volumes:
 - conjur-access-token: emptyDir (memory-backed) for the authenticator token
-- conjur-ssl-cert: ConfigMap with the Conjur SSL certificate
 */}}
 {{- define "besu-stack.conjur.volumes" -}}
 {{- if include "besu-stack.conjur.enabled" . }}
 - name: conjur-access-token
   emptyDir:
     medium: Memory
-- name: conjur-ssl-cert
-  configMap:
-    name: {{ .Values.global.conjur.certificateConfigMap.name | default "conjur-certificate" }}
 {{- end }}
 {{- end -}}
 
@@ -140,21 +156,29 @@ command:
   - /bin/sh
   - -c
   - |
-    set -e
+    set -eu
+    if ! command -v summon >/dev/null 2>&1; then
+      echo "Conjur: summon binary not found in Besu image" >&2
+      exit 1
+    fi
+    if [ ! -x /usr/local/lib/summon/summon-conjur ]; then
+      echo "Conjur: summon-conjur provider not found at /usr/local/lib/summon/summon-conjur" >&2
+      exit 1
+    fi
+
     # Extract pod ordinal from hostname (e.g., besu-validators-2 -> 2)
     ORDINAL="${HOSTNAME##*-}"
     echo "Conjur: Fetching private key for ordinal ${ORDINAL}"
 
     # Create dynamic secrets.yml with ordinal-specific Conjur path
-    KEY_PATH=$(echo "${CONJUR_KEY_PATH_TEMPLATE}" | sed "s/{{ "{{ordinal}}" }}/${ORDINAL}/g")
+    KEY_PATH=$(printf '%s' "${CONJUR_KEY_PATH_TEMPLATE}" | sed "s/{{ "{{ordinal}}" }}/${ORDINAL}/g")
+    umask 077
     mkdir -p /tmp/summon
-    cat > /tmp/summon/secrets.yml <<SECRETS_EOF
-    BESU_PRIVATE_KEY: !var ${KEY_PATH}
-    SECRETS_EOF
+    printf 'BESU_PRIVATE_KEY: !var %s\n' "${KEY_PATH}" > /tmp/summon/secrets.yml
 
     # Use summon to fetch the key from Conjur and write to nodekey file
     summon --ignore-all -f /tmp/summon/secrets.yml sh -c \
-      'echo -n "$BESU_PRIVATE_KEY" > /secrets/nodekey && chmod 400 /secrets/nodekey'
+      'printf %s "$BESU_PRIVATE_KEY" > /secrets/nodekey && chmod 400 /secrets/nodekey'
     echo "Conjur: Successfully wrote nodekey"
 
     # Execute besu with all original arguments

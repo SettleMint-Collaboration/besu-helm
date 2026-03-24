@@ -33,10 +33,9 @@ validators:
   replicas: 4
   keys:
     inline:
-      - "0x..."
-      - "0x..."
-      - "0x..."
-      - "0x..."
+      - privateKey: "0x..."
+        publicKey: "0x..."
+        nodeAddress: "0x..."
 ```
 
 Or use pre-existing secret:
@@ -44,7 +43,30 @@ Or use pre-existing secret:
 ```yaml
 validators:
   keys:
-    existingSecret: my-validator-keys
+    existingSecret:
+      name: my-validator-keys
+```
+
+Or fetch validator private keys from Conjur:
+
+```yaml
+global:
+  conjur:
+    enabled: true
+    applianceUrl: "https://conjur.example.com/api"
+    account: "myorg"
+    authnUrl: "https://conjur.example.com/api/authn-k8s/cluster"
+    authnLogin: "host/conjur/authn-k8s/cluster/apps/besu/*/*"
+
+validators:
+  image:
+    repository: besu-conjur
+  conjur:
+    keyPath: "besu/validators/{{ordinal}}/private-key"
+  keys:
+    inline:
+      - publicKey: "0x..."
+        nodeAddress: "0x..."
 ```
 
 ### Validators
@@ -162,6 +184,7 @@ Example values files in `examples/`:
 - `values-ingress-contour.yaml` - Contour ingress
 - `values-tls-certmanager.yaml` - TLS with cert-manager
 - `values-external-secrets.yaml` - External Secrets Operator
+- `values-conjur.yaml` - CyberArk Conjur integration with inline public metadata placeholders
 
 ## Upgrade
 

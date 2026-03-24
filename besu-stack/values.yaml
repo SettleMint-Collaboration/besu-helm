@@ -40,6 +40,8 @@ global:
   # instead of being stored in Kubernetes Secrets.
   # Prerequisites:
   #   - Besu Docker image must include summon + summon-conjur binaries
+  #   - Do not use the upstream hyperledger/besu image unless it has been rebuilt
+  #     with those binaries included
   #   - conjur-certificate ConfigMap must exist in the namespace
   #   - Private keys must be stored in Conjur at the configured paths
   conjur:
@@ -154,7 +156,8 @@ validators:
   # 3. existingSecret: Single secret with all keys (using keyPrefix)
   keys:
     # -- Inline keys (DEVELOPMENT ONLY - not recommended for production)
-    # Each entry should have: privateKey, publicKey (optional), nodeAddress (optional)
+    # Each entry should have privateKey unless global.conjur.enabled=true.
+    # publicKey and nodeAddress are optional but recommended for peer discovery.
     inline: []
       # - privateKey: "0x..."
       #   publicKey: "0x..."
