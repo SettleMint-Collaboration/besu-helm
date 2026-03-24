@@ -1,25 +1,38 @@
 # =============================================================================
-# CyberArk Conjur Integration Example
+# CyberArk Conjur Integration - Client Example
 # =============================================================================
 #
 # This example shows how to configure Besu validators to fetch private keys
-# from CyberArk Conjur instead of Kubernetes Secrets.
+# from CyberArk Conjur while keeping public keys and enodes inline for
+# static-nodes.json generation and peer discovery.
 #
 # Prerequisites:
 #   1. Besu Docker image must include summon + summon-conjur binaries:
 #      - summon v0.9.0 at /usr/local/bin/summon
 #      - summon-conjur v0.6.0 at /usr/local/lib/summon/summon-conjur
+#
 #   2. Create the conjur-certificate ConfigMap in your namespace:
 #      kubectl create configmap conjur-certificate \
-#        --from-file=ssl-certificate=conjur.pem
+#        --from-file=ssl-certificate=conjur.pem -n <your-namespace>
+#
 #   3. Store validator private keys in Conjur at the configured paths:
 #      besu/validators/0/private-key
 #      besu/validators/1/private-key
 #      besu/validators/2/private-key
 #      besu/validators/3/private-key
 #
+#   4. Ensure the Conjur Kubernetes authenticator is configured to allow
+#      the service account to authenticate (authn-k8s policy).
+#
+# How it works:
+#   - Public keys and enodes are provided inline for static-nodes.json
+#     generation and peer discovery (same as without Conjur).
+#   - Private keys are NOT in the values file — they are fetched from Conjur
+#     at pod startup by the summon wrapper script.
+#   - The inline entries intentionally have NO privateKey field.
+#
 # Execution flow per pod (e.g., besu-validators-2):
-#   1. conjur-authenticator init container authenticates with Conjur
+#   1. conjur-authenticator init container authenticates with Conjur follower
 #   2. Besu container wrapper script creates secrets.yml for ordinal 2
 #   3. summon fetches "besu/validators/2/private-key" from Conjur
 #   4. Key written to /secrets/nodekey
@@ -27,25 +40,48 @@
 #
 # Usage:
 #   helm install besu ./besu-stack -f examples/values-conjur.yaml
+#
+# Note: Update the URLs, account, and authnLogin below to match your
+#       environment (SIT/UAT/PROD).
 # =============================================================================
 
 global:
   conjur:
     enabled: true
     image:
+      # OpenShift internal registry - adjust if using a different registry
       registry: "image-registry.openshift-image-registry.svc:5000"
       repository: "openshift/conjur-kubernetes-authenticator"
       tag: "0.19.0"
       pullPolicy: Always
     version: "5"
-    applianceUrl: "https://conjur.example.com"
-    account: "myorg"
-    authnUrl: "https://conjur.example.com/authn-k8s/my-authenticator"
-    authnLogin: "host/conjur/authn-k8s/my-authenticator/apps/besu"
+
+    # -- Conjur follower URL (update per environment)
+    # SIT/UAT: https://follower.dapvault.svc.cluster.local/api
+    # PROD:    https://follower.dapvault.svc.cluster.local/api
+    applianceUrl: "https://follower.dapvault.svc.cluster.local/api"
+
+    # -- Conjur account name
+    account: "ocbc"
+
+    # -- Conjur Kubernetes authenticator URL (update per environment)
+    # SIT: https://follower.dapvault.svc.cluster.local/api/authn-k8s/dev-cluster
+    # UAT: https://follower.dapvault.svc.cluster.local/api/authn-k8s/uat-cluster
+    authnUrl: "https://follower.dapvault.svc.cluster.local/api/authn-k8s/dev-cluster"
+
+    # -- Conjur authentication login identity (update per environment/namespace)
+    # Format: host/conjur/authn-k8s/<cluster>/apps/<namespace>/*/*
+    authnLogin: "host/conjur/authn-k8s/dev-cluster/apps/besu-global/*/*"
+
     tokenTimeout: ""
+
+    # -- ConfigMap containing the Conjur SSL certificate
+    # Create with: kubectl create configmap conjur-certificate \
+    #   --from-file=ssl-certificate=conjur.pem -n <namespace>
     certificateConfigMap:
       name: "conjur-certificate"
       key: "ssl-certificate"
+
     resources:
       requests:
         cpu: "50m"
@@ -57,14 +93,43 @@ global:
 validators:
   enabled: true
   replicas: 4
+  image:
+    # Use a custom Besu image that already contains summon + summon-conjur.
+    # The upstream hyperledger/besu image does not include those binaries.
+    registry: "registry.example.com/blockchain"
+    repository: "besu-conjur"
+    tag: "26.2.0"
 
   # Conjur key path template - {{ordinal}} is replaced with pod index at runtime
+  # Adjust the path to match your Conjur policy structure.
+  # Examples:
+  #   Default:  "besu/validators/{{ordinal}}/private-key"
+  #   Per-env:  "UATVault/DEV/SG_SIT_besu-global/validators/{{ordinal}}/private-key"
   conjur:
     keyPath: "besu/validators/{{ordinal}}/private-key"
 
-  # No inline keys or existingSecrets needed - Conjur provides the keys
+  # Public keys and enodes are still provided inline for static-nodes.json
+  # generation and peer discovery. Private keys are omitted — Conjur fetches
+  # them at runtime.
+  # These values are intentionally fake placeholders and must be replaced.
   keys:
-    inline: []
+    inline:
+      - nodeAddress: "0x1111111111111111111111111111111111111111"
+        publicKey: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        # privateKey: provided by Conjur at besu/validators/0/private-key
+        enode: "enode://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@example-validator-0.invalid:30303"
+      - nodeAddress: "0x2222222222222222222222222222222222222222"
+        publicKey: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        # privateKey: provided by Conjur at besu/validators/1/private-key
+        enode: "enode://bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb@example-validator-1.invalid:30303"
+      - nodeAddress: "0x3333333333333333333333333333333333333333"
+        publicKey: "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        # privateKey: provided by Conjur at besu/validators/2/private-key
+        enode: "enode://cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc@example-validator-2.invalid:30303"
+      - nodeAddress: "0x4444444444444444444444444444444444444444"
+        publicKey: "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        # privateKey: provided by Conjur at besu/validators/3/private-key
+        enode: "enode://dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd@example-validator-3.invalid:30303"
     existingSecrets: []
     existingSecret:
       name: ""
