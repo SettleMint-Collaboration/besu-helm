@@ -447,7 +447,9 @@ rpcNodes:
   extraArgs: []
 
   # -- Extra environment variables
-  extraEnv: []
+  extraEnv:
+    - name: JAVA_TOOL_OPTIONS
+      value: "-XX:InitialRAMPercentage=35.0 -XX:MaxRAMPercentage=65.0"
 
   # -- Extra volume mounts
   extraVolumeMounts: []
