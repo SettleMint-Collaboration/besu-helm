@@ -1,0 +1,53 @@
+besu-stack/values.yaml
+  0087f5417bf623c5 193-234,382-396
+besu-stack/examples/values-hostnetwork.yaml
+  0087f5417bf623c5 1-103
+besu-stack/examples/values-nodeport-perpod.yaml
+  0087f5417bf623c5 1-77
+besu-stack/templates/service-rpc-perpod.yaml
+  0087f5417bf623c5 1-54
+besu-stack/templates/statefulset-validators.yaml
+  0087f5417bf623c5 3,36-39,112,146,151-158
+besu-stack/examples/values-conjur-perpod.yaml
+  0087f5417bf623c5 1-155
+besu-stack/examples/values-main.yaml
+  0087f5417bf623c5 1-79
+besu-stack/examples/values-dr.yaml
+  0087f5417bf623c5 1-66
+besu-stack/templates/_conjur.tpl
+  0087f5417bf623c5 146-147
+besu-stack/templates/_helpers.tpl
+  0087f5417bf623c5 401-406,408,478-483,485
+besu-stack/Chart.yaml
+  0087f5417bf623c5 5,30-40
+besu-stack/DR.md
+  0087f5417bf623c5 1-149
+besu-stack/README.md
+  0087f5417bf623c5 188-503
+besu-stack/templates/service-validators-perpod.yaml
+  0087f5417bf623c5 1-54
+besu-stack/templates/statefulset-rpc.yaml
+  0087f5417bf623c5 2,33-36,103,142,147-153
+besu-stack/templates/_perpod.tpl
+  0087f5417bf623c5 1-259
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "5bccecc67477a7cdbbc8d48c36fb40143a6fd692",
+  "prompts": {
+    "0087f5417bf623c5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bde3b978-5af0-4bd3-ae1e-3018797a6456",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Oleksandr Hrab",
+      "messages": [],
+      "total_additions": 1647,
+      "total_deletions": 265,
+      "accepted_lines": 1426,
+      "overriden_lines": 0
+    }
+  }
+}
