@@ -190,6 +190,48 @@ validators:
     # -- P2P port for peer discovery
     port: 30303
 
+    # -- hostNetwork mode: pod shares the node's network namespace and
+    # binds directly to the node's IP on p2p.port. No Service object is
+    # emitted for p2p. Mutually exclusive with perPodService.
+    # Constraints:
+    #   - One validator pod per node (port conflict otherwise) — pair with
+    #     pod anti-affinity.
+    #   - OpenShift: ServiceAccount needs the 'hostnetwork-v2' SCC.
+    #   - advertisedHosts entries must be reachable from peers (usually
+    #     the node IP, or an external DNS that resolves to it).
+    hostNetwork:
+      enabled: false
+      # -- Externally-reachable host each pod advertises in its enode
+      # (one per replica). Typically the hosting node's IP.
+      advertisedHosts: []
+
+    # -- Per-pod p2p Service (for cross-cluster peering or any case where each
+    # pod needs a stable, externally-routable address)
+    # When enabled, the chart emits one extra Service per validator ordinal.
+    # The headless Service is unaffected. Mutually exclusive with Conjur for now.
+    perPodService:
+      # -- Enable per-pod Service emission
+      enabled: false
+      # -- Service type: LoadBalancer (cloud / MetalLB) or NodePort
+      type: LoadBalancer
+      # -- externalTrafficPolicy for LoadBalancer Services
+      externalTrafficPolicy: Cluster
+      # -- Annotations applied to every per-pod Service. Use for cloud-LB hints
+      # or MetalLB defaults that apply across all pods.
+      commonAnnotations: {}
+      # -- Per-ordinal annotations (length must equal validators.replicas).
+      # Use for MetalLB IP pinning, e.g.:
+      #   - metallb.universe.tf/loadBalancerIPs: "10.1.25.1"
+      #   - metallb.universe.tf/loadBalancerIPs: "10.1.25.2"
+      perPodAnnotations: []
+      # -- Per-ordinal NodePort (only used when type=NodePort, length must
+      # equal validators.replicas).
+      nodePorts: []
+      # -- Externally-reachable host each pod advertises in its enode.
+      # REQUIRED when enabled. Length must equal validators.replicas.
+      # Typically the LoadBalancer IP / DNS name assigned to each per-pod Service.
+      advertisedHosts: []
+
   # -- RPC configuration for validators (limited API for security)
   rpc:
     http:
@@ -336,6 +378,21 @@ rpcNodes:
   p2p:
     # -- P2P port
     port: 30303
+
+    # -- hostNetwork mode. See validators.p2p.hostNetwork for full docs.
+    hostNetwork:
+      enabled: false
+      advertisedHosts: []
+
+    # -- Per-pod p2p Service. See validators.p2p.perPodService for full docs.
+    perPodService:
+      enabled: false
+      type: LoadBalancer
+      externalTrafficPolicy: Cluster
+      commonAnnotations: {}
+      perPodAnnotations: []
+      nodePorts: []
+      advertisedHosts: []
 
   # -- RPC configuration (full API access)
   rpc:

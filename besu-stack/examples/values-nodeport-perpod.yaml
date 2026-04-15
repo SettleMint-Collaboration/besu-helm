@@ -1,0 +1,77 @@
+# =============================================================================
+# NodePort per-pod Services (any-node VIP pattern)
+# =============================================================================
+#
+# Use this when:
+#   - You need cross-cluster Besu peering, AND
+#   - Your cluster has no LoadBalancer provider (no MetalLB, no cloud LB,
+#     e.g. bare-metal OpenShift with platform: None), AND
+#   - You have (or can provision) an external VIP / L3 forwarder that sits
+#     in front of the node pool and routes TCP+UDP traffic on the chosen
+#     NodePort range to all nodes.
+#
+# How it works:
+#   - Each per-pod Service reserves a unique NodePort on every node.
+#   - The VIP forwards the NodePort range to the node pool.
+#   - Each pod advertises VIP:nodePort in its enode URL.
+#   - Peers connect to VIP:nodePort -> one of the nodes picks it up ->
+#     kube-proxy routes to the pod selected by statefulset.kubernetes.io/pod-name.
+#   - Pods can reschedule freely; the VIP stays the same.
+#
+# Prerequisites (outside the chart):
+#   - VIP (F5 / haproxy / keepalived / external hardware LB) that forwards
+#     the chosen NodePort range (here 30303-30311) to all worker node IPs.
+#   - Firewall: allow TCP+UDP on that range from the peer cluster's egress
+#     IPs to every worker node IP.
+#   - Kubernetes NodePort range includes your chosen ports (default
+#     30000-32767 — these fit).
+#
+# Usage:
+#   helm install besu ./besu-stack -f examples/values-nodeport-perpod.yaml
+# =============================================================================
+
+validators:
+  enabled: true
+  replicas: 4
+  keys:
+    existingSecret:
+      name: besu-validator-keys
+      keyPrefix: "validator-"
+  p2p:
+    port: 30303
+    perPodService:
+      enabled: true
+      type: NodePort
+      # Cluster = kube-proxy may cross-route, source IP masqueraded.
+      # Local  = only the node running the target pod accepts traffic,
+      #          source IP preserved, but requires pod-to-node pinning.
+      externalTrafficPolicy: Cluster
+      # Unique NodePort per pod. Length MUST equal validators.replicas.
+      nodePorts: [30303, 30304, 30305, 30306]
+      # VIP that fronts all worker nodes and forwards the NodePort range.
+      # Same VIP for every pod -- kube-proxy routes by NodePort.
+      advertisedHosts:
+        - "10.1.24.100"
+        - "10.1.24.100"
+        - "10.1.24.100"
+        - "10.1.24.100"
+
+rpcNodes:
+  enabled: true
+  replicas: 2
+  keys:
+    existingSecret:
+      name: besu-rpc-keys
+      keyPrefix: "rpc-"
+  p2p:
+    port: 30303
+    perPodService:
+      enabled: true
+      type: NodePort
+      externalTrafficPolicy: Cluster
+      # Must not overlap with validators.nodePorts above. The chart fails
+      # helm template if any NodePort is duplicated across the release.
+      nodePorts: [30310, 30311]
+      advertisedHosts:
+        - "10.1.24.100"
+        - "10.1.24.100"

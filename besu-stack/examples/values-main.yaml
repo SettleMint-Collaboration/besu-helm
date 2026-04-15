@@ -1,0 +1,79 @@
+# =============================================================================
+# Hot-Warm DR — MAIN cluster overlay
+# =============================================================================
+#
+# Pair file: values-dr.yaml (DR cluster overlay).
+#
+# Architecture:
+#   - Main cluster: 4 validators (active) + 2 RPC nodes (active)
+#   - DR cluster:   4 validators (replicas=0, same keys) + 2 RPC nodes (active)
+#   - All 8 nodes peer via the shared static-nodes.json below
+#   - Cross-cluster pod-to-pod routing on TCP+UDP 30303 via VPN / VPC peering
+#
+# Pre-requisites (must exist in BOTH clusters before `helm install`):
+#   1. Secret  besu-validator-keys
+#        keys: validator-0, validator-1, validator-2, validator-3
+#        IDENTICAL CONTENT in Main and DR — that is what makes them the same
+#        validator identity for QBFT consensus.
+#   2. Secret  besu-rpc-keys
+#        keys: rpc-0, rpc-1
+#        DIFFERENT content in Main vs DR — RPC nodes are distinct physical
+#        peers and must not share enode keys.
+#   3. External DNS records (one per pod) that resolve to a routable IP from
+#      the OTHER cluster, e.g. main-validator-0.besu.internal,
+#      dr-validator-0.besu.internal, etc. Headless StatefulSet DNS does not
+#      cross cluster boundaries.
+#   4. genesis.raw below must be byte-identical to the DR overlay.
+#
+# Failover: see the runbook in the project plan. DR validators are scaled up
+# manually only after Main is confirmed dead, to prevent double-signing.
+# =============================================================================
+
+genesis:
+  # -- Pin the EXACT same genesis JSON in values-dr.yaml.
+  # Generate with: besu operator generate-blockchain-config
+  raw: |
+    { ...replace with real genesis.json content... }
+
+validators:
+  enabled: true
+  replicas: 4                                  # ACTIVE on Main
+  keys:
+    existingSecret:
+      name: besu-validator-keys                # same Secret name + content in DR
+      keyPrefix: "validator-"
+
+rpcNodes:
+  enabled: true
+  replicas: 2
+  keys:
+    existingSecret:
+      name: besu-rpc-keys                      # cluster-local — Main RPC keys
+      keyPrefix: "rpc-"
+
+staticNodes:
+  # -- Full enode list for ALL 8 nodes across both clusters.
+  # IDENTICAL in values-dr.yaml so peering works in both directions.
+  # Replace <pubkey-*> with the public keys generated alongside the private
+  # keys stored in the Secrets above. Replace *.besu.internal with the
+  # external DNS names you created in step 3.
+  raw:
+    # --- Main cluster ---
+    - "enode://<pubkey-v0>@main-validator-0.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-v1>@main-validator-1.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-v2>@main-validator-2.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-v3>@main-validator-3.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-r0>@main-rpc-0.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-r1>@main-rpc-1.besu.internal:30303?discport=30303"
+    # --- DR cluster (same validator pubkeys as Main; distinct RPC pubkeys) ---
+    - "enode://<pubkey-v0>@dr-validator-0.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-v1>@dr-validator-1.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-v2>@dr-validator-2.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-v3>@dr-validator-3.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-rd0>@dr-rpc-0.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-rd1>@dr-rpc-1.besu.internal:30303?discport=30303"
+
+ingress:
+  # -- Main is the active RPC endpoint during normal operation.
+  enabled: true
+  hostname: rpc.example.com

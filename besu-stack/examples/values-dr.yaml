@@ -1,0 +1,66 @@
+# =============================================================================
+# Hot-Warm DR — DR cluster overlay
+# =============================================================================
+#
+# Pair file: values-main.yaml (Main cluster overlay). Read it first — most
+# context, prerequisites, and the staticNodes/genesis content are documented
+# there and must be kept byte-identical here.
+#
+# Differences from values-main.yaml:
+#   - validators.replicas: 0      (warm — keys present, pods not running)
+#   - ingress.enabled: false      (do not advertise DR RPC during normal ops)
+#   - besu-rpc-keys Secret content is DIFFERENT from Main (cluster-local keys)
+#
+# Same as values-main.yaml:
+#   - genesis.raw                 (byte-identical)
+#   - staticNodes.raw             (byte-identical — peering works both ways)
+#   - validators.keys.existingSecret reference
+#   - besu-validator-keys Secret CONTENT (same private key bytes → same
+#     validator identity for QBFT)
+#
+# Failover: see the runbook in the project plan. Scale validators.replicas to
+# 4 only after Main is confirmed dead, to prevent double-signing.
+# =============================================================================
+
+genesis:
+  # -- MUST be byte-identical to values-main.yaml.
+  raw: |
+    { ...replace with real genesis.json content... }
+
+validators:
+  enabled: true
+  replicas: 0                                  # WARM — pods not running
+  keys:
+    existingSecret:
+      name: besu-validator-keys                # same Secret name + content as Main
+      keyPrefix: "validator-"
+
+rpcNodes:
+  enabled: true
+  replicas: 2
+  keys:
+    existingSecret:
+      name: besu-rpc-keys                      # cluster-local — DR RPC keys (distinct from Main)
+      keyPrefix: "rpc-"
+
+staticNodes:
+  # -- MUST be byte-identical to values-main.yaml.
+  raw:
+    - "enode://<pubkey-v0>@main-validator-0.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-v1>@main-validator-1.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-v2>@main-validator-2.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-v3>@main-validator-3.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-r0>@main-rpc-0.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-r1>@main-rpc-1.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-v0>@dr-validator-0.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-v1>@dr-validator-1.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-v2>@dr-validator-2.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-v3>@dr-validator-3.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-rd0>@dr-rpc-0.besu.internal:30303?discport=30303"
+    - "enode://<pubkey-rd1>@dr-rpc-1.besu.internal:30303?discport=30303"
+
+ingress:
+  # -- DR RPC ingress stays disabled during normal ops. Enable as part of
+  # failover (or pre-create with a different hostname for direct DR access
+  # during testing).
+  enabled: false

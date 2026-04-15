@@ -1,0 +1,155 @@
+# =============================================================================
+# Conjur + per-pod LoadBalancer Services (combined)
+# =============================================================================
+#
+# Use this when validators must:
+#   1. Source their private keys from CyberArk Conjur (regulated environments
+#      where Kubernetes Secrets are not acceptable for key material), AND
+#   2. Be reachable from pods in another cluster (cross-cluster Besu peering
+#      for hot-warm DR or just multi-region fan-out).
+#
+# How the combined entrypoint wrapper works at pod startup:
+#   1. ORDINAL=${HOSTNAME##*-}                 (e.g. besu-validators-2 -> 2)
+#   2. perPod block: BESU_P2P_HOST = advertisedHosts[ORDINAL]
+#                    -> Besu advertises the LB IP in its enode
+#   3. Conjur block: summon fetches besu/validators/${ORDINAL}/private-key
+#                    -> writes /secrets/nodekey
+#   4. exec besu "$@"                           (original args from values)
+#
+# Prerequisites (operator, before `helm install`):
+#   - Conjur appliance reachable from this cluster; authn-k8s policy that
+#     allows the besu ServiceAccount in this namespace.
+#   - conjur-certificate ConfigMap in this namespace:
+#       kubectl create configmap conjur-certificate \
+#         --from-file=ssl-certificate=conjur.pem -n <ns>
+#   - Validator private keys stored in Conjur at:
+#       besu/validators/0/private-key
+#       besu/validators/1/private-key
+#       besu/validators/2/private-key
+#       besu/validators/3/private-key
+#   - Custom Besu image that contains summon + summon-conjur
+#     (upstream hyperledger/besu does NOT include them).
+#   - MetalLB operator installed (or another LoadBalancer provider). The
+#     IPs listed in perPodAnnotations + advertisedHosts must come from a
+#     pool MetalLB will serve from.
+#   - Cross-cluster routing for TCP+UDP 30303 between this cluster's
+#     advertisedHosts range and the peer cluster's range.
+#
+# Usage:
+#   helm install besu ./besu-stack -f examples/values-conjur-perpod.yaml
+# =============================================================================
+
+global:
+  conjur:
+    enabled: true
+    image:
+      registry: "image-registry.openshift-image-registry.svc:5000"
+      repository: "openshift/conjur-kubernetes-authenticator"
+      tag: "0.19.0"
+      pullPolicy: Always
+    version: "5"
+    # Update for SIT / UAT / PROD
+    applianceUrl: "https://follower.dapvault.svc.cluster.local/api"
+    account: "myorg"
+    authnUrl:   "https://follower.dapvault.svc.cluster.local/api/authn-k8s/main-cluster"
+    authnLogin: "host/conjur/authn-k8s/main-cluster/apps/besu-global/*/*"
+    certificateConfigMap:
+      name: "conjur-certificate"
+      key: "ssl-certificate"
+    resources:
+      requests: {cpu: "50m", memory: "64Mi"}
+      limits:   {cpu: "100m", memory: "128Mi"}
+
+validators:
+  enabled: true
+  replicas: 4
+  image:
+    # Custom image containing summon + summon-conjur. Upstream hyperledger/besu
+    # does NOT include them.
+    registry: "registry.example.com/blockchain"
+    repository: "besu-conjur"
+    tag: "26.4.0"
+
+  # Where in Conjur each pod looks for its key. {{ordinal}} is replaced at
+  # runtime with the StatefulSet pod index (0, 1, 2, 3).
+  conjur:
+    keyPath: "besu/validators/{{ordinal}}/private-key"
+
+  # Public material for static-nodes.json generation. Private keys are
+  # intentionally absent — they come from Conjur at startup.
+  keys:
+    inline:
+      - nodeAddress: "0x1111111111111111111111111111111111111111"
+        publicKey: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      - nodeAddress: "0x2222222222222222222222222222222222222222"
+        publicKey: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      - nodeAddress: "0x3333333333333333333333333333333333333333"
+        publicKey: "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      - nodeAddress: "0x4444444444444444444444444444444444444444"
+        publicKey: "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+
+  p2p:
+    port: 30303
+    perPodService:
+      enabled: true
+      type: LoadBalancer
+      externalTrafficPolicy: Cluster
+      commonAnnotations:
+        # Optional: pin the MetalLB pool used for these Services.
+        metallb.universe.tf/address-pool: besu-p2p
+      # One LB IP per pod. Length MUST equal validators.replicas.
+      perPodAnnotations:
+        - {metallb.universe.tf/loadBalancerIPs: "10.1.25.1"}
+        - {metallb.universe.tf/loadBalancerIPs: "10.1.25.2"}
+        - {metallb.universe.tf/loadBalancerIPs: "10.1.25.3"}
+        - {metallb.universe.tf/loadBalancerIPs: "10.1.25.4"}
+      # What each pod puts in its enode. Length MUST equal validators.replicas.
+      # These should match the loadBalancerIPs above (or external DNS names
+      # that resolve to them).
+      advertisedHosts:
+        - "10.1.25.1"
+        - "10.1.25.2"
+        - "10.1.25.3"
+        - "10.1.25.4"
+
+rpcNodes:
+  enabled: true
+  replicas: 2
+  # RPC keys are not Conjur-managed in this chart today — use a pre-created
+  # Kubernetes Secret, or omit entirely to let Besu auto-generate (only
+  # acceptable when the RPC nodes are NOT listed in any peer's static-nodes,
+  # because the auto-generated pubkey is unknown until first start).
+  keys:
+    existingSecret:
+      name: besu-rpc-keys
+      keyPrefix: "rpc-"
+  p2p:
+    port: 30303
+    perPodService:
+      enabled: true
+      type: LoadBalancer
+      perPodAnnotations:
+        - {metallb.universe.tf/loadBalancerIPs: "10.1.25.10"}
+        - {metallb.universe.tf/loadBalancerIPs: "10.1.25.11"}
+      advertisedHosts:
+        - "10.1.25.10"
+        - "10.1.25.11"
+
+# Cross-cluster peering: list all 8 nodes (Main + DR). The same staticNodes
+# block goes into the peer cluster's values file unchanged. Validator pubkeys
+# are shared across clusters (same Conjur keys → same pubkeys); RPC pubkeys
+# differ per cluster.
+staticNodes:
+  raw:
+    - "enode://aaaa...@10.1.25.1:30303?discport=30303"          # Main validator-0
+    - "enode://bbbb...@10.1.25.2:30303?discport=30303"          # Main validator-1
+    - "enode://cccc...@10.1.25.3:30303?discport=30303"          # Main validator-2
+    - "enode://dddd...@10.1.25.4:30303?discport=30303"          # Main validator-3
+    - "enode://<main-rpc-0-pubkey>@10.1.25.10:30303?discport=30303"
+    - "enode://<main-rpc-1-pubkey>@10.1.25.11:30303?discport=30303"
+    - "enode://aaaa...@10.2.25.1:30303?discport=30303"          # DR validator-0 (same pubkey as Main v0)
+    - "enode://bbbb...@10.2.25.2:30303?discport=30303"
+    - "enode://cccc...@10.2.25.3:30303?discport=30303"
+    - "enode://dddd...@10.2.25.4:30303?discport=30303"
+    - "enode://<dr-rpc-0-pubkey>@10.2.25.10:30303?discport=30303"
+    - "enode://<dr-rpc-1-pubkey>@10.2.25.11:30303?discport=30303"

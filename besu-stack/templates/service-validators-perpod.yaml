@@ -1,0 +1,54 @@
+{{- if and .Values.validators.enabled (include "besu-stack.validators.perPodEnabled" .) }}
+{{- include "besu-stack.perpod.validate" . }}
+{{- $root := . -}}
+{{- $serviceName := include "besu-stack.validators.serviceName" . -}}
+{{- $cfg := .Values.validators.p2p.perPodService -}}
+{{- $port := .Values.validators.p2p.port -}}
+{{- $replicas := .Values.validators.replicas | int -}}
+{{- range $i := until $replicas }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $serviceName }}-{{ $i }}-p2p
+  labels:
+    {{- include "besu-stack.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: validator
+    besu-stack.io/perpod-ordinal: "{{ $i }}"
+  annotations:
+    {{- with (include "besu-stack.annotations" $root) }}
+    {{- . | nindent 4 }}
+    {{- end }}
+    {{- with $cfg.commonAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- if and $cfg.perPodAnnotations (lt $i (len $cfg.perPodAnnotations)) }}
+    {{- toYaml (index $cfg.perPodAnnotations $i) | nindent 4 }}
+    {{- end }}
+spec:
+  {{- $svcType := $cfg.type | default "LoadBalancer" }}
+  type: {{ $svcType }}
+  {{- if or (eq $svcType "LoadBalancer") (eq $svcType "NodePort") }}
+  externalTrafficPolicy: {{ $cfg.externalTrafficPolicy | default "Cluster" }}
+  {{- end }}
+  selector:
+    {{- include "besu-stack.selectorLabels" $root | nindent 4 }}
+    app.kubernetes.io/component: validator
+    statefulset.kubernetes.io/pod-name: {{ $serviceName }}-{{ $i }}
+  ports:
+    - name: p2p-tcp
+      port: {{ $port }}
+      targetPort: p2p-tcp
+      protocol: TCP
+      {{- if and (eq ($cfg.type | default "LoadBalancer") "NodePort") $cfg.nodePorts (lt $i (len $cfg.nodePorts)) }}
+      nodePort: {{ index $cfg.nodePorts $i }}
+      {{- end }}
+    - name: p2p-udp
+      port: {{ $port }}
+      targetPort: p2p-udp
+      protocol: UDP
+      {{- if and (eq ($cfg.type | default "LoadBalancer") "NodePort") $cfg.nodePorts (lt $i (len $cfg.nodePorts)) }}
+      nodePort: {{ index $cfg.nodePorts $i }}
+      {{- end }}
+{{- end }}
+{{- end }}

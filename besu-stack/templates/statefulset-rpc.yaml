@@ -1,4 +1,5 @@
 {{- if .Values.rpcNodes.enabled }}
+{{- include "besu-stack.perpod.validate" . }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -29,6 +30,10 @@ spec:
         {{- include "besu-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "besu-stack.serviceAccountName" . }}
+      {{- if include "besu-stack.rpcNodes.hostNetworkEnabled" . }}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
       {{- include "besu-stack.imagePullSecrets" . | nindent 6 }}
       {{- if .Values.priorityClassName }}
       priorityClassName: {{ .Values.priorityClassName }}
@@ -95,6 +100,7 @@ spec:
           securityContext:
             {{- include "besu-stack.openshiftContainerSecurityContext" . | nindent 12 }}
           {{- end }}
+          {{- include "besu-stack.rpcNodes.perPodCommand" . | nindent 10 }}
           args:
             {{- include "besu-stack.rpcNodes.args" . | nindent 12 }}
           ports:
@@ -133,10 +139,18 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+            {{- if not (include "besu-stack.rpcNodes.advertisedHostsEnabled" .) }}
             - name: BESU_P2P_HOST
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+            {{- else }}
+            # Per-pod advertised host: wrapper reads BESU_ADVERTISED_HOSTS.
+            # Populated from perPodService.advertisedHosts or
+            # hostNetwork.advertisedHosts (mutually exclusive).
+            - name: BESU_ADVERTISED_HOSTS
+              value: {{ include "besu-stack.rpcNodes.advertisedHostsCsv" . | quote }}
+            {{- end }}
             # Unset Docker image defaults to avoid warnings
             {{- if not .Values.rpcNodes.rpc.ws.enabled }}
             - name: BESU_RPC_WS_HOST

@@ -398,7 +398,14 @@ Besu command args for validators - uses FOREST storage for consensus nodes
 # P2P networking
 - --p2p-enabled=true
 - --discovery-enabled=true
+{{- if include "besu-stack.validators.advertisedHostsEnabled" . }}
+# Per-pod advertised host mode (perPodService or hostNetwork): bind to all
+# interfaces; the wrapper script sets BESU_P2P_HOST to the per-ordinal
+# external host that will appear in the enode URL.
+- --p2p-interface=0.0.0.0
+{{- else }}
 - --p2p-host=0.0.0.0
+{{- end }}
 - --p2p-port={{ .Values.validators.p2p.port }}
 - --max-peers=25
 - --nat-method=NONE
@@ -468,7 +475,14 @@ Besu command args for RPC nodes - uses BONSAI storage for faster queries
 # P2P networking
 - --p2p-enabled=true
 - --discovery-enabled=true
+{{- if include "besu-stack.rpcNodes.advertisedHostsEnabled" . }}
+# Per-pod advertised host mode (perPodService or hostNetwork): bind to all
+# interfaces; the wrapper script sets BESU_P2P_HOST to the per-ordinal
+# external host that will appear in the enode URL.
+- --p2p-interface=0.0.0.0
+{{- else }}
 - --p2p-host=0.0.0.0
+{{- end }}
 - --p2p-port={{ .Values.rpcNodes.p2p.port }}
 - --max-peers=25
 - --nat-method=NONE

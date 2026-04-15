@@ -2,8 +2,8 @@ apiVersion: v2
 name: besu-stack
 description: Production-ready Hyperledger Besu blockchain network deployment for Kubernetes
 type: application
-version: 0.2.8
-appVersion: "26.2.0"
+version: 0.3.0
+appVersion: "26.4.0"
 kubeVersion: ">=1.24.0-0"
 home: https://github.com/settlemint/besu-helm
 icon: https://raw.githubusercontent.com/hyperledger/besu-docs/main/static/img/besu-logo.svg
@@ -27,3 +27,14 @@ annotations:
   artifacthub.io/license: MIT
   artifacthub.io/operator: "false"
   artifacthub.io/category: integration-delivery
+  artifacthub.io/changes: |
+    - kind: added
+      description: Per-pod p2p Services (LoadBalancer / NodePort) for cross-cluster peering (validators.p2p.perPodService, rpcNodes.p2p.perPodService); default off, existing deployments unchanged
+    - kind: added
+      description: hostNetwork mode (validators.p2p.hostNetwork, rpcNodes.p2p.hostNetwork) for on-prem clusters without a LoadBalancer or VIP
+    - kind: added
+      description: perPodService and hostNetwork both compose with global.conjur.enabled via a unified entrypoint wrapper
+    - kind: added
+      description: Hot-warm DR examples (values-main.yaml, values-dr.yaml, values-conjur-perpod.yaml, values-nodeport-perpod.yaml, values-hostnetwork.yaml) and DR.md deployment guide
+    - kind: added
+      description: Validation for advertised-hosts length, NodePort range/uniqueness, and perPodService/hostNetwork mutual exclusion
