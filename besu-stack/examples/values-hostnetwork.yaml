@@ -1,0 +1,103 @@
+# =============================================================================
+# hostNetwork mode (no Service, pod binds directly to the node's IP)
+# =============================================================================
+#
+# Use this when:
+#   - You need cross-cluster Besu peering, AND
+#   - The cluster has no LoadBalancer provider (no MetalLB, no cloud LB),
+#     AND
+#   - You cannot / prefer not to provision an external VIP for NodePort,
+#     AND
+#   - Worker nodes have routable IPs reachable from the peer cluster.
+#
+# How it works:
+#   - Pod spec sets hostNetwork: true and dnsPolicy: ClusterFirstWithHostNet.
+#     The pod shares the node's network namespace and binds Besu p2p
+#     directly to the node IP on port 30303.
+#   - No Service is emitted for p2p. The headless Service is still created
+#     for in-cluster peering (nothing there changes).
+#   - Each pod advertises the hosting node's IP in its enode via the
+#     standard wrapper (advertisedHosts[ordinal]).
+#
+# Constraints:
+#   - ONE validator pod per node. Port 30303 is a node-wide port and two
+#     pods can't share it. Pair with pod anti-affinity (see below).
+#   - Pinning ordinal <-> node. Since advertisedHosts is indexed by pod
+#     ordinal, validator-0 MUST always land on the same node. Use local-PV
+#     storage (WaitForFirstConsumer) or a strict nodeSelector per-ordinal
+#     workaround (outside this chart).
+#   - OpenShift: grant the chart's ServiceAccount the 'hostnetwork-v2' SCC:
+#       oc adm policy add-scc-to-user hostnetwork-v2 -z <sa> -n <ns>
+#     (SA name defaults to the Helm release name.)
+#   - Bitdefender / Falco / similar endpoint agents on nodes will observe
+#     Besu traffic on the node network — coordinate with the security team.
+#   - If a node dies, its pinned pod cannot reschedule until the node (or
+#     local PV) returns. The advertised host becomes unreachable until
+#     then.
+#
+# Usage:
+#   helm install besu ./besu-stack -f examples/values-hostnetwork.yaml
+# =============================================================================
+
+validators:
+  enabled: true
+  replicas: 4
+  keys:
+    existingSecret:
+      name: besu-validator-keys
+      keyPrefix: "validator-"
+
+  # Pin pods to specific nodes via a local-PV storage class that uses
+  # WaitForFirstConsumer. The first time validator-N is scheduled, its PV
+  # is created on a node; afterwards the pod always comes back to that
+  # same node.
+  persistence:
+    storageClass: "local-vol-rer"   # replace with your local-PV class
+
+  p2p:
+    port: 30303
+    hostNetwork:
+      enabled: true
+      # One entry per validator, each the IP of the node that will host it.
+      # If a pod ends up on a different node, peers will try to reach the
+      # wrong IP -- that's why the pinning above is non-negotiable.
+      advertisedHosts:
+        - "10.1.24.7"   # node worker1 -> validator-0
+        - "10.1.24.8"   # node worker2 -> validator-1
+        - "10.1.24.9"   # node worker3 -> validator-2
+        - "10.1.24.10"  # node worker4 -> validator-3
+
+  # Strict anti-affinity: no two validator pods on the same node.
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: besu-stack
+              app.kubernetes.io/component: validator
+          topologyKey: kubernetes.io/hostname
+
+rpcNodes:
+  enabled: true
+  replicas: 2
+  keys:
+    existingSecret:
+      name: besu-rpc-keys
+      keyPrefix: "rpc-"
+  persistence:
+    storageClass: "local-vol-rer"
+  p2p:
+    port: 30303
+    hostNetwork:
+      enabled: true
+      advertisedHosts:
+        - "10.1.24.11"   # dedicated node for rpc-0
+        - "10.1.24.12"   # dedicated node for rpc-1
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: besu-stack
+              app.kubernetes.io/component: rpc
+          topologyKey: kubernetes.io/hostname

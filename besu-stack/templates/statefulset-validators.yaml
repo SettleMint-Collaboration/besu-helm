@@ -1,5 +1,6 @@
 {{- if .Values.validators.enabled }}
 {{- include "besu-stack.conjur.validate" . }}
+{{- include "besu-stack.perpod.validate" . }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -32,6 +33,10 @@ spec:
         {{- include "besu-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "besu-stack.serviceAccountName" . }}
+      {{- if include "besu-stack.validators.hostNetworkEnabled" . }}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
       {{- include "besu-stack.imagePullSecrets" . | nindent 6 }}
       {{- if .Values.priorityClassName }}
       priorityClassName: {{ .Values.priorityClassName }}
@@ -104,7 +109,7 @@ spec:
           securityContext:
             {{- include "besu-stack.openshiftContainerSecurityContext" . | nindent 12 }}
           {{- end }}
-          {{- include "besu-stack.conjur.command" . | nindent 10 }}
+          {{- include "besu-stack.validators.startCommand" . | nindent 10 }}
           args:
             {{- include "besu-stack.validators.args" . | nindent 12 }}
           ports:
@@ -138,10 +143,19 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+            {{- if not (include "besu-stack.validators.advertisedHostsEnabled" .) }}
             - name: BESU_P2P_HOST
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+            {{- else }}
+            # Per-pod advertised host: the wrapper script reads
+            # BESU_ADVERTISED_HOSTS and sets BESU_P2P_HOST based on ordinal.
+            # Populated from either validators.p2p.perPodService.advertisedHosts
+            # or validators.p2p.hostNetwork.advertisedHosts (mutually exclusive).
+            - name: BESU_ADVERTISED_HOSTS
+              value: {{ include "besu-stack.validators.advertisedHostsCsv" . | quote }}
+            {{- end }}
             # Unset Docker image defaults to avoid warnings
             {{- if not .Values.validators.rpc.ws.enabled }}
             - name: BESU_RPC_WS_HOST

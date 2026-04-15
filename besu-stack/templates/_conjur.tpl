@@ -143,46 +143,6 @@ Render Conjur environment variables for the main Besu container
 {{- end -}}
 
 {{/*
-Render the wrapper command override for the Besu container when Conjur is enabled.
-The wrapper script:
-1. Extracts pod ordinal from hostname
-2. Creates a dynamic secrets.yml with the ordinal-specific Conjur path
-3. Uses summon to fetch the private key and write it to /secrets/nodekey
-4. Execs besu with all original CLI args (passed via $@)
+The Conjur entrypoint wrapper has moved into besu-stack.validators.startCommand
+(_perpod.tpl) so it can compose with the perPodService wrapper.
 */}}
-{{- define "besu-stack.conjur.command" -}}
-{{- if include "besu-stack.conjur.enabled" . }}
-command:
-  - /bin/sh
-  - -c
-  - |
-    set -eu
-    if ! command -v summon >/dev/null 2>&1; then
-      echo "Conjur: summon binary not found in Besu image" >&2
-      exit 1
-    fi
-    if [ ! -x /usr/local/lib/summon/summon-conjur ]; then
-      echo "Conjur: summon-conjur provider not found at /usr/local/lib/summon/summon-conjur" >&2
-      exit 1
-    fi
-
-    # Extract pod ordinal from hostname (e.g., besu-validators-2 -> 2)
-    ORDINAL="${HOSTNAME##*-}"
-    echo "Conjur: Fetching private key for ordinal ${ORDINAL}"
-
-    # Create dynamic secrets.yml with ordinal-specific Conjur path
-    KEY_PATH=$(printf '%s' "${CONJUR_KEY_PATH_TEMPLATE}" | sed "s/{{ "{{ordinal}}" }}/${ORDINAL}/g")
-    umask 077
-    mkdir -p /tmp/summon
-    printf 'BESU_PRIVATE_KEY: !var %s\n' "${KEY_PATH}" > /tmp/summon/secrets.yml
-
-    # Use summon to fetch the key from Conjur and write to nodekey file
-    summon --ignore-all -f /tmp/summon/secrets.yml sh -c \
-      'printf %s "$BESU_PRIVATE_KEY" > /secrets/nodekey && chmod 400 /secrets/nodekey'
-    echo "Conjur: Successfully wrote nodekey"
-
-    # Execute besu with all original arguments
-    exec besu "$@"
-  - --
-{{- end }}
-{{- end -}}
