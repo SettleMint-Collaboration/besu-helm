@@ -448,7 +448,6 @@ rpcNodes:
       cpu: "1"
       memory: "4Gi"
     limits:
-      cpu: "2"
       memory: "8Gi"
 
   # -- Pod security context
