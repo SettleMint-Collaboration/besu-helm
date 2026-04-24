@@ -1,0 +1,48 @@
+besu-stack/values.yaml
+  h_2f0ef4c73770d3 204-208,210,220-223,231,393-397,606-608
+  65860b2ed27670b3 266-272,452-456,563-566
+besu-stack/examples/values-conjur-perpod.yaml
+  69795e9657b52d37 74-76
+besu-stack/examples/values-conjur.yaml
+  69795e9657b52d37 104-107,111
+besu-stack/Chart.yaml
+  h_2f0ef4c73770d3 5,31-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "57f60f3c8606699341dd8cff7e55a1e89de7403a",
+  "prompts": {
+    "65860b2ed27670b3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019dbe8f-d526-7142-8e7d-f5afdc74d36a",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Oleksandr Hrab",
+      "messages": [],
+      "total_additions": 16,
+      "total_deletions": 1,
+      "accepted_lines": 16,
+      "overriden_lines": 0
+    },
+    "69795e9657b52d37": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "40d5ba54-8524-4589-a175-548b652f533c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Oleksandr Hrab",
+      "messages": [],
+      "total_additions": 8,
+      "total_deletions": 2,
+      "accepted_lines": 8,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_2f0ef4c73770d3": {
+      "author": "Oleksandr Hrab"
+    }
+  }
+}
