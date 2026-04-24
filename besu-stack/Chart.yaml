@@ -2,7 +2,7 @@ apiVersion: v2
 name: besu-stack
 description: Production-ready Hyperledger Besu blockchain network deployment for Kubernetes
 type: application
-version: 0.3.1
+version: 0.3.2
 appVersion: "26.4.0"
 kubeVersion: ">=1.24.0-0"
 home: https://github.com/settlemint/besu-helm
@@ -28,6 +28,22 @@ annotations:
   artifacthub.io/operator: "false"
   artifacthub.io/category: integration-delivery
   artifacthub.io/changes: |
+    - kind: fixed
+      description: static-nodes.json generation no longer emits invalid DNS-only host:port entries
+    - kind: fixed
+      description: Pods now roll when generated static-nodes.json changes
+    - kind: fixed
+      description: Set Besu sync-min-peers explicitly for small private QBFT networks
+    - kind: added
+      description: Validate staticNodes.raw entries to reject bare host:port values and enode public keys with 0x prefixes
+    - kind: fixed
+      description: Hot-warm DR mode now supports active RPC nodes while local validators are scaled to zero
+    - kind: fixed
+      description: Existing validator/RPC key secrets are copied by pod ordinal to the canonical /secrets/nodekey path
+    - kind: added
+      description: validators p2p advertisedReplicaCount for reserving DR failover endpoints independently from running replicas
+    - kind: added
+      description: networkPolicy.p2pPeerCIDRs for cross-cluster Besu p2p ingress/egress
     - kind: added
       description: Per-pod p2p Services (LoadBalancer / NodePort) for cross-cluster peering (validators.p2p.perPodService, rpcNodes.p2p.perPodService); default off, existing deployments unchanged
     - kind: added

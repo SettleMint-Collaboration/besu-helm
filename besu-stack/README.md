@@ -47,6 +47,12 @@ validators:
       name: my-validator-keys
 ```
 
+When validator keys come from `existingSecret` or `existingSecrets`, provide
+`staticNodes.raw` with full `enode://...` URLs. Helm can mount the private keys
+but cannot derive public enode keys from Kubernetes Secrets at template time.
+The enode public key must be hex without `0x`; for example:
+`enode://f303...ca5b@besu-validators-0.besu-validators.besu.svc.cluster.local:30303?discport=30303`.
+
 Or fetch validator private keys from Conjur:
 
 ```yaml
@@ -197,6 +203,20 @@ For deploying `besu-stack` across two clusters (hot-warm topology, failover
 runbook, cross-cluster network configuration, verification), see the
 dedicated guide: [**DR.md**](DR.md).
 
+DR deployments must pin **both validator and RPC node private keys**:
+
+- Validator private keys are identical in Main and DR because warm DR
+  validators represent the same QBFT validator identities.
+- RPC private keys are distinct per cluster, but still must be explicitly
+  configured when RPC nodes are listed in `staticNodes.raw`. Besu derives
+  each node's enode public key from its private key; if the RPC private key is
+  generated inside the data directory, the enode can change when the PVC is
+  recreated and other clusters will keep dialing a stale peer identity.
+
+Use `validators.keys.existingSecret` / `existingSecrets` and
+`rpcNodes.keys.existingSecret` / `existingSecrets` for production DR instead
+of inline keys.
+
 The rest of this README describes the general-purpose networking features
 that make cross-cluster peering possible — use them for DR or any other
 multi-cluster / external-peer scenario.
@@ -240,16 +260,17 @@ validators:
   p2p:
     perPodService:
       enabled: true
+      advertisedReplicaCount: 4         # optional; defaults to validators.replicas
       type: LoadBalancer                 # or NodePort
       externalTrafficPolicy: Cluster
       commonAnnotations:                 # applied to every per-pod Service
         metallb.universe.tf/address-pool: besu-p2p
-      perPodAnnotations:                 # length must equal validators.replicas
+      perPodAnnotations:                 # length must equal advertisedReplicaCount
         - metallb.universe.tf/loadBalancerIPs: "10.1.25.1"
         - metallb.universe.tf/loadBalancerIPs: "10.1.25.2"
         - metallb.universe.tf/loadBalancerIPs: "10.1.25.3"
         - metallb.universe.tf/loadBalancerIPs: "10.1.25.4"
-      advertisedHosts:                   # length must equal validators.replicas
+      advertisedHosts:                   # length must equal advertisedReplicaCount
         - "10.1.25.1"                    # what each pod puts in its enode
         - "10.1.25.2"
         - "10.1.25.3"
@@ -281,8 +302,12 @@ Notes:
 - `advertisedHosts[i]` must equal what peers can actually reach. Usually that
   is the LoadBalancer IP — pin it via `perPodAnnotations` so a Service
   recreation does not change the address.
+- In hot-warm DR, set `validators.replicas: 0` and
+  `validators.p2p.perPodService.advertisedReplicaCount: 4` to pre-create the
+  validator p2p Services / static endpoint contract while the validator pods
+  remain offline.
 - For NodePort mode, set `type: NodePort` and provide a `nodePorts: []` list
-  (length must equal replicas). See the "NodePort patterns" subsection
+  (length must equal the advertised endpoint count). See the "NodePort patterns" subsection
   below for how to set `advertisedHosts` and `externalTrafficPolicy`.
 
 #### NodePort patterns
@@ -465,7 +490,8 @@ validators:
   p2p:
     hostNetwork:
       enabled: true
-      advertisedHosts:                  # one per replica; hosting node's IP
+      advertisedReplicaCount: 4          # optional; defaults to validators.replicas
+      advertisedHosts:                  # one per advertised endpoint; hosting node's IP
         - "10.1.24.7"                   # -> validator-0
         - "10.1.24.8"                   # -> validator-1
         - "10.1.24.9"                   # -> validator-2
@@ -498,6 +524,19 @@ Constraints:
 - **Security teams** — Bitdefender / Falco / similar node-level endpoint
   security will see Besu traffic on the node network namespace.
   Coordinate before enabling.
+
+### NetworkPolicy for multi-cluster p2p
+
+When `networkPolicy.enabled: true`, add the peer cluster pod/VIP CIDRs once
+through `networkPolicy.p2pPeerCIDRs`. The chart applies the rules to both
+validator and RPC p2p ingress/egress.
+
+```yaml
+networkPolicy:
+  enabled: true
+  p2pPeerCIDRs:
+    - "10.20.0.0/16"     # DR pod CIDR, MetalLB range, or routed VIP range
+```
 
 A runnable example is at
 [`examples/values-hostnetwork.yaml`](examples/values-hostnetwork.yaml).

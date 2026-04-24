@@ -25,6 +25,19 @@ spec:
           port: {{ .Values.validators.p2p.port }}
         - protocol: UDP
           port: {{ .Values.validators.p2p.port }}
+    {{- if .Values.networkPolicy.p2pPeerCIDRs }}
+    # Allow p2p from explicitly configured peer cluster CIDRs
+    - from:
+        {{- range .Values.networkPolicy.p2pPeerCIDRs }}
+        - ipBlock:
+            cidr: {{ . | quote }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.validators.p2p.port }}
+        - protocol: UDP
+          port: {{ .Values.validators.p2p.port }}
+    {{- end }}
     # Allow RPC from within cluster
     {{- if .Values.validators.rpc.http.enabled }}
     - from:
@@ -55,6 +68,23 @@ spec:
           port: {{ .Values.validators.p2p.port }}
         - protocol: UDP
           port: {{ .Values.validators.p2p.port }}
+    {{- if .Values.networkPolicy.p2pPeerCIDRs }}
+    # Allow p2p to explicitly configured peer cluster CIDRs
+    - to:
+        {{- range .Values.networkPolicy.p2pPeerCIDRs }}
+        - ipBlock:
+            cidr: {{ . | quote }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.validators.p2p.port }}
+        - protocol: UDP
+          port: {{ .Values.validators.p2p.port }}
+        - protocol: TCP
+          port: {{ .Values.rpcNodes.p2p.port }}
+        - protocol: UDP
+          port: {{ .Values.rpcNodes.p2p.port }}
+    {{- end }}
     # Allow DNS
     - to:
         - namespaceSelector: {}
@@ -93,6 +123,19 @@ spec:
           port: {{ .Values.rpcNodes.p2p.port }}
         - protocol: UDP
           port: {{ .Values.rpcNodes.p2p.port }}
+    {{- if .Values.networkPolicy.p2pPeerCIDRs }}
+    # Allow p2p from explicitly configured peer cluster CIDRs
+    - from:
+        {{- range .Values.networkPolicy.p2pPeerCIDRs }}
+        - ipBlock:
+            cidr: {{ . | quote }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.rpcNodes.p2p.port }}
+        - protocol: UDP
+          port: {{ .Values.rpcNodes.p2p.port }}
+    {{- end }}
     # Allow RPC from anywhere (for ingress)
     {{- if .Values.rpcNodes.rpc.http.enabled }}
     - from: []
@@ -129,6 +172,23 @@ spec:
           port: {{ .Values.validators.p2p.port }}
         - protocol: UDP
           port: {{ .Values.validators.p2p.port }}
+    {{- if .Values.networkPolicy.p2pPeerCIDRs }}
+    # Allow p2p to explicitly configured peer cluster CIDRs
+    - to:
+        {{- range .Values.networkPolicy.p2pPeerCIDRs }}
+        - ipBlock:
+            cidr: {{ . | quote }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.validators.p2p.port }}
+        - protocol: UDP
+          port: {{ .Values.validators.p2p.port }}
+        - protocol: TCP
+          port: {{ .Values.rpcNodes.p2p.port }}
+        - protocol: UDP
+          port: {{ .Values.rpcNodes.p2p.port }}
+    {{- end }}
     # Allow DNS
     - to:
         - namespaceSelector: {}

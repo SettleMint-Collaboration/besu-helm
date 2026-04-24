@@ -40,6 +40,14 @@ double-sign blocks and corrupt the chain.
    - VPN-routed pod CIDRs + `external-dns` or CNI-pinned pod IPs
      (see "Cross-cluster network configuration" below)
 5. **Identical `genesis.raw`** in both values files.
+6. **DR RPC startup gate disabled** with
+   `rpcNodes.waitForValidators.enabled=false` on the warm DR cluster.
+   Otherwise RPC pods wait for local `validator-0`, which is intentionally
+   offline while `validators.replicas=0`.
+7. **Full `staticNodes.raw` enodes** when keys come from existing Secrets.
+   Do not use bare `host:port` entries; Besu requires
+   `enode://<public-key>@<host>:<port>?discport=<port>` in
+   `static-nodes.json`.
 
 ## Cross-cluster network configuration
 
@@ -66,8 +74,10 @@ you also run big RPC responses over the same path.
   port/range) from the peer cluster's egress on the node security group
   (not just the VPC ACL). Cloud-managed Kubernetes often blocks
   pod-to-pod inbound from outside the VPC by default.
-- **NetworkPolicy.** When `networkPolicy.enabled: true`, add an ingress
-  rule allowing the peer cluster's pod CIDR / LB IPs on the p2p port.
+- **NetworkPolicy.** When `networkPolicy.enabled: true`, set
+  `networkPolicy.p2pPeerCIDRs` to the peer cluster pod CIDR, MetalLB range,
+  or routed VIP range so both validator and RPC p2p ingress/egress are
+  allowed.
 
 **3. DNS / addressability per pod.** StatefulSet pods have stable *names*
 but pod **IPs change on restart**, and their headless-service DNS does
@@ -90,6 +100,23 @@ helm install besu ./besu-stack -n besu -f examples/values-main.yaml
 
 # DR cluster (separate kubectl context)
 helm install besu ./besu-stack -n besu -f examples/values-dr.yaml
+```
+
+If validator p2p endpoints must be reserved while DR validators are offline,
+set the advertised endpoint count independently from running replicas:
+
+```yaml
+validators:
+  replicas: 0
+  p2p:
+    perPodService:
+      enabled: true
+      advertisedReplicaCount: 4
+      advertisedHosts:
+        - dr-validator-0.besu.internal
+        - dr-validator-1.besu.internal
+        - dr-validator-2.besu.internal
+        - dr-validator-3.besu.internal
 ```
 
 Verify peering from a DR RPC node — `admin_peers` should list Main's

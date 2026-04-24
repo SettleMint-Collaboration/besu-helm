@@ -65,7 +65,7 @@ spec:
           securityContext:
             {{- include "besu-stack.openshiftContainerSecurityContext" . | nindent 12 }}
           {{- end }}
-        {{- if .Values.validators.enabled }}
+        {{- if and .Values.validators.enabled .Values.rpcNodes.waitForValidators.enabled (gt (int .Values.validators.replicas) 0) }}
         - name: wait-for-validators
           image: {{ include "besu-stack.initContainers.image" . }}
           imagePullPolicy: {{ .Values.initContainers.image.pullPolicy }}
@@ -84,6 +84,40 @@ spec:
           securityContext:
             runAsUser: 1000
             runAsNonRoot: true
+          {{- else }}
+          securityContext:
+            {{- include "besu-stack.openshiftContainerSecurityContext" . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+        {{- if include "besu-stack.rpcNodes.hasKeys" . }}
+        - name: init-nodekey
+          image: {{ include "besu-stack.initContainers.image" . }}
+          imagePullPolicy: {{ .Values.initContainers.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              ORDINAL="${HOSTNAME##*-}"
+              if [ -f "/keys-source/{{ .Values.rpcNodes.keys.existingSecret.keyPrefix | default "rpc-" }}${ORDINAL}" ]; then
+                KEY_FILE="/keys-source/{{ .Values.rpcNodes.keys.existingSecret.keyPrefix | default "rpc-" }}${ORDINAL}"
+              elif [ -f "/keys-source/nodekey-${ORDINAL}" ]; then
+                KEY_FILE="/keys-source/nodekey-${ORDINAL}"
+              else
+                echo "No RPC node key found for ordinal ${ORDINAL}" >&2
+                exit 1
+              fi
+              cp "${KEY_FILE}" /secrets/nodekey
+              chmod 400 /secrets/nodekey
+          volumeMounts:
+            - name: keys-source
+              mountPath: /keys-source
+              readOnly: true
+            - name: keys
+              mountPath: /secrets
+          {{- if not .Values.openshift.enabled }}
+          securityContext:
+            {{- toYaml .Values.rpcNodes.containerSecurityContext | nindent 12 }}
           {{- else }}
           securityContext:
             {{- include "besu-stack.openshiftContainerSecurityContext" . | nindent 12 }}
@@ -216,11 +250,11 @@ spec:
         - name: tmp
           emptyDir: {}
         {{- if .Values.rpcNodes.keys.inline }}
-        - name: keys
+        - name: keys-source
           secret:
             secretName: {{ include "besu-stack.fullname" . }}-rpc-keys
         {{- else if .Values.rpcNodes.keys.existingSecrets }}
-        - name: keys
+        - name: keys-source
           projected:
             sources:
             {{- range $i, $secret := .Values.rpcNodes.keys.existingSecrets }}
@@ -231,9 +265,13 @@ spec:
                       path: nodekey-{{ $i }}
             {{- end }}
         {{- else if .Values.rpcNodes.keys.existingSecret.name }}
-        - name: keys
+        - name: keys-source
           secret:
             secretName: {{ .Values.rpcNodes.keys.existingSecret.name }}
+        {{- end }}
+        {{- if include "besu-stack.rpcNodes.hasKeys" . }}
+        - name: keys
+          emptyDir: {}
         {{- end }}
         {{- with .Values.rpcNodes.extraVolumes }}
         {{- toYaml . | nindent 8 }}

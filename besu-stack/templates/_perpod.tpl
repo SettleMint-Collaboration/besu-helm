@@ -87,11 +87,34 @@ feature is enabled (validated to be at most one via perpod.validate).
 {{- end -}}
 
 {{/*
+Effective advertised endpoint count for validators. This defaults to the
+running replica count, but DR warm clusters can reserve failover endpoints
+while validators.replicas is 0.
+*/}}
+{{- define "besu-stack.validators.perPodAdvertisedReplicaCount" -}}
+{{- $cfg := .Values.validators.p2p.perPodService -}}
+{{- if and $cfg (hasKey $cfg "advertisedReplicaCount") (ne $cfg.advertisedReplicaCount nil) -}}
+{{- $cfg.advertisedReplicaCount | int -}}
+{{- else -}}
+{{- .Values.validators.replicas | int -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "besu-stack.validators.hostNetworkAdvertisedReplicaCount" -}}
+{{- $cfg := .Values.validators.p2p.hostNetwork -}}
+{{- if and $cfg (hasKey $cfg "advertisedReplicaCount") (ne $cfg.advertisedReplicaCount nil) -}}
+{{- $cfg.advertisedReplicaCount | int -}}
+{{- else -}}
+{{- .Values.validators.replicas | int -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Validate per-pod + hostNetwork configuration.
 Checks (per component, when enabled):
   - perPodService and hostNetwork are mutually exclusive.
-  - advertisedHosts length == replicas.
-  - NodePort only: nodePorts length == replicas, ports in 30000-32767,
+  - advertisedHosts length == advertised endpoint count.
+  - NodePort only: nodePorts length == advertised endpoint count, ports in 30000-32767,
     no duplicates across validators + rpcNodes combined.
 */}}
 {{- define "besu-stack.perpod.validate" -}}
@@ -102,10 +125,10 @@ Checks (per component, when enabled):
 {{- end -}}
 {{- if include "besu-stack.validators.perPodEnabled" . -}}
 {{- $cfg := .Values.validators.p2p.perPodService -}}
-{{- $replicas := .Values.validators.replicas | int -}}
+{{- $replicas := include "besu-stack.validators.perPodAdvertisedReplicaCount" . | int -}}
 {{- $hosts := $cfg.advertisedHosts | default list -}}
 {{- if ne (len $hosts) $replicas -}}
-{{- fail (printf "validators.p2p.perPodService.advertisedHosts must have %d entries (one per validator replica), got %d" $replicas (len $hosts)) -}}
+{{- fail (printf "validators.p2p.perPodService.advertisedHosts must have %d entries (one per advertised validator endpoint), got %d" $replicas (len $hosts)) -}}
 {{- end -}}
 {{- if eq ($cfg.type | default "LoadBalancer") "NodePort" -}}
 {{- $ports := $cfg.nodePorts | default list -}}
@@ -123,10 +146,10 @@ Checks (per component, when enabled):
 {{- end -}}
 {{- if include "besu-stack.validators.hostNetworkEnabled" . -}}
 {{- $cfg := .Values.validators.p2p.hostNetwork -}}
-{{- $replicas := .Values.validators.replicas | int -}}
+{{- $replicas := include "besu-stack.validators.hostNetworkAdvertisedReplicaCount" . | int -}}
 {{- $hosts := $cfg.advertisedHosts | default list -}}
 {{- if ne (len $hosts) $replicas -}}
-{{- fail (printf "validators.p2p.hostNetwork.advertisedHosts must have %d entries (one per validator replica), got %d" $replicas (len $hosts)) -}}
+{{- fail (printf "validators.p2p.hostNetwork.advertisedHosts must have %d entries (one per advertised validator endpoint), got %d" $replicas (len $hosts)) -}}
 {{- end -}}
 {{- end -}}
 {{- /* --- rpcNodes --- */ -}}

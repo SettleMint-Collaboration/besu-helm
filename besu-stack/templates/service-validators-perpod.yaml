@@ -4,7 +4,7 @@
 {{- $serviceName := include "besu-stack.validators.serviceName" . -}}
 {{- $cfg := .Values.validators.p2p.perPodService -}}
 {{- $port := .Values.validators.p2p.port -}}
-{{- $replicas := .Values.validators.replicas | int -}}
+{{- $replicas := include "besu-stack.validators.perPodAdvertisedReplicaCount" . | int -}}
 {{- range $i := until $replicas }}
 ---
 apiVersion: v1
