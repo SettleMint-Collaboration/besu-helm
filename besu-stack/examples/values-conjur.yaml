@@ -101,10 +101,14 @@ validators:
     tag: "26.2.0"
 
   # Conjur key path template - {{ordinal}} is replaced with pod index at runtime
-  # Adjust the path to match your Conjur policy structure.
+  # Adjust the path to match your Conjur policy structure. The full rendered
+  # string is passed to summon-conjur as the variable identifier, so any
+  # slash-separated Conjur variable ID is supported (including a trailing
+  # /password segment, which is just the last path component — not special).
   # Examples:
   #   Default:  "besu/validators/{{ordinal}}/private-key"
   #   Per-env:  "UATVault/DEV/SG_SIT_besu-global/validators/{{ordinal}}/private-key"
+  #   UAT:      "UATVault/EPV/SG_UAT_et-ent-blk-plat-ibft/validator-privatekey{{ordinal}}/password"
   conjur:
     keyPath: "besu/validators/{{ordinal}}/private-key"
 

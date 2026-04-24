@@ -201,17 +201,26 @@ validators:
     #     the node IP, or an external DNS that resolves to it).
     hostNetwork:
       enabled: false
+      # -- Number of externally reachable validator endpoints to reserve.
+      # Defaults to validators.replicas. Set this to the failover replica count
+      # in hot-warm DR when validators.replicas is 0 but endpoints must be
+      # predeclared in static-nodes.json.
+      advertisedReplicaCount: null
       # -- Externally-reachable host each pod advertises in its enode
-      # (one per replica). Typically the hosting node's IP.
+      # (one per advertised endpoint). Typically the hosting node's IP.
       advertisedHosts: []
 
     # -- Per-pod p2p Service (for cross-cluster peering or any case where each
     # pod needs a stable, externally-routable address)
     # When enabled, the chart emits one extra Service per validator ordinal.
-    # The headless Service is unaffected. Mutually exclusive with Conjur for now.
+    # The headless Service is unaffected.
     perPodService:
       # -- Enable per-pod Service emission
       enabled: false
+      # -- Number of per-pod p2p Services / advertised hosts to reserve.
+      # Defaults to validators.replicas. Set this to the failover replica count
+      # in hot-warm DR when validators.replicas is 0.
+      advertisedReplicaCount: null
       # -- Service type: LoadBalancer (cloud / MetalLB) or NodePort
       type: LoadBalancer
       # -- externalTrafficPolicy for LoadBalancer Services
@@ -219,7 +228,7 @@ validators:
       # -- Annotations applied to every per-pod Service. Use for cloud-LB hints
       # or MetalLB defaults that apply across all pods.
       commonAnnotations: {}
-      # -- Per-ordinal annotations (length must equal validators.replicas).
+      # -- Per-ordinal annotations (length must equal advertisedReplicaCount).
       # Use for MetalLB IP pinning, e.g.:
       #   - metallb.universe.tf/loadBalancerIPs: "10.1.25.1"
       #   - metallb.universe.tf/loadBalancerIPs: "10.1.25.2"
@@ -253,6 +262,13 @@ validators:
     enabled: true
     # -- Metrics port
     port: 9545
+
+  # -- Sync configuration
+  sync:
+    # -- Minimum peers required before syncing. Besu defaults to 5, which is
+    # too high for small private QBFT networks that only static-peer with the
+    # validator set.
+    minPeers: 1
 
   # -- Persistent storage configuration
   persistence:
@@ -374,6 +390,12 @@ rpcNodes:
       name: ""
       keyPrefix: "rpc-"
 
+  # -- Startup dependency on local validators. Disable for hot-warm DR clusters
+  # where validators.enabled=true but validators.replicas=0 and RPC nodes sync
+  # from remote validators through static-nodes.json.
+  waitForValidators:
+    enabled: true
+
   # -- P2P network configuration
   p2p:
     # -- P2P port
@@ -426,6 +448,11 @@ rpcNodes:
     enabled: true
     # -- Metrics port
     port: 9545
+
+  # -- Sync configuration
+  sync:
+    # -- Minimum peers required before syncing. Besu defaults to 5.
+    minPeers: 1
 
   # -- Persistent storage configuration
   persistence:
@@ -533,7 +560,10 @@ staticNodes:
   # -- Raw static-nodes.json content (with full enode URLs)
   # Format: ["enode://<pubkey>@<host>:<port>?discport=<port>", ...]
   # Generate using: docker run --rm ghcr.io/settlemint/network-bootstrapper generate
-  # If empty, DNS-only static nodes will be generated for DNS-based discovery
+  # If empty, the chart generates full enode URLs only when validator inline
+  # public keys are available. With existingSecret/existingSecrets, Helm cannot
+  # derive public enode keys, so the generated static-nodes.json is [] and you
+  # must provide staticNodes.raw for production peering.
   raw: []
 
   # -- Use external ConfigMap for static nodes
@@ -573,6 +603,9 @@ rbac:
 networkPolicy:
   # -- Enable network policies
   enabled: false
+  # -- Additional peer cluster CIDRs allowed for Besu p2p traffic. Use this
+  # for multi-cluster / DR peering when NetworkPolicy is enabled.
+  p2pPeerCIDRs: []
   # -- Additional ingress rules
   additionalIngressRules: []
   # -- Additional egress rules

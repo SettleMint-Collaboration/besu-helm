@@ -68,7 +68,7 @@ spec:
           securityContext:
             {{- include "besu-stack.openshiftContainerSecurityContext" . | nindent 12 }}
           {{- end }}
-        {{- if and .Values.validators.keys.inline (not (include "besu-stack.conjur.enabled" .)) }}
+        {{- if and (include "besu-stack.validators.hasKeys" .) (not (include "besu-stack.conjur.enabled" .)) }}
         - name: init-nodekey
           image: {{ include "besu-stack.initContainers.image" . }}
           imagePullPolicy: {{ .Values.initContainers.image.pullPolicy }}
@@ -76,16 +76,21 @@ spec:
             - sh
             - -c
             - |
-              # Extract pod ordinal from hostname (e.g., besu-stack-validators-0 -> 0)
+              set -eu
               ORDINAL="${HOSTNAME##*-}"
-              echo "Pod ordinal: ${ORDINAL}"
-              # Copy the correct key for this validator
-              cp "/keys-all/validator-${ORDINAL}" /secrets/nodekey
+              if [ -f "/keys-source/{{ .Values.validators.keys.existingSecret.keyPrefix | default "validator-" }}${ORDINAL}" ]; then
+                KEY_FILE="/keys-source/{{ .Values.validators.keys.existingSecret.keyPrefix | default "validator-" }}${ORDINAL}"
+              elif [ -f "/keys-source/nodekey-${ORDINAL}" ]; then
+                KEY_FILE="/keys-source/nodekey-${ORDINAL}"
+              else
+                echo "No validator key found for ordinal ${ORDINAL}" >&2
+                exit 1
+              fi
+              cp "${KEY_FILE}" /secrets/nodekey
               chmod 400 /secrets/nodekey
-              echo "Copied validator-${ORDINAL} to /secrets/nodekey"
           volumeMounts:
-            - name: keys-all
-              mountPath: /keys-all
+            - name: keys-source
+              mountPath: /keys-source
               readOnly: true
             - name: keys
               mountPath: /secrets
@@ -226,14 +231,14 @@ spec:
         - name: keys
           emptyDir: {}
         {{- else if .Values.validators.keys.inline }}
-        - name: keys-all
+        - name: keys-source
           secret:
             secretName: {{ include "besu-stack.fullname" . }}-validator-keys
         - name: keys
           emptyDir: {}
         {{- else if .Values.validators.keys.existingSecrets }}
         # Keys from individual secrets - mounted via subPath per pod
-        - name: keys
+        - name: keys-source
           projected:
             sources:
             {{- range $i, $secret := .Values.validators.keys.existingSecrets }}
@@ -243,10 +248,14 @@ spec:
                     - key: {{ $secret.key | default "nodekey" }}
                       path: nodekey-{{ $i }}
             {{- end }}
-        {{- else if .Values.validators.keys.existingSecret.name }}
         - name: keys
+          emptyDir: {}
+        {{- else if .Values.validators.keys.existingSecret.name }}
+        - name: keys-source
           secret:
             secretName: {{ .Values.validators.keys.existingSecret.name }}
+        - name: keys
+          emptyDir: {}
         {{- end }}
         {{- include "besu-stack.conjur.volumes" . | nindent 8 }}
         {{- with .Values.validators.extraVolumes }}

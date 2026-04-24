@@ -38,6 +38,8 @@ validators:
 rpcNodes:
   enabled: true
   replicas: 2
+  waitForValidators:
+    enabled: false                            # DR RPCs sync from remote validators
   keys:
     existingSecret:
       name: besu-rpc-keys                      # cluster-local — DR RPC keys (distinct from Main)

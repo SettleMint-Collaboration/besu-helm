@@ -1,4 +1,4 @@
-{{- if and .Values.validators.enabled .Values.podDisruptionBudget.validators.enabled }}
+{{- if and .Values.validators.enabled .Values.podDisruptionBudget.validators.enabled (gt (int .Values.validators.replicas) 0) }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:

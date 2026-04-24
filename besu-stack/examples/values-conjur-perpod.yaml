@@ -71,7 +71,9 @@ validators:
     tag: "26.4.0"
 
   # Where in Conjur each pod looks for its key. {{ordinal}} is replaced at
-  # runtime with the StatefulSet pod index (0, 1, 2, 3).
+  # runtime with the StatefulSet pod index (0, 1, 2, 3). The rendered string
+  # is passed verbatim to summon-conjur as the Conjur variable identifier.
+  # Example (UAT): "UATVault/EPV/SG_UAT_et-ent-blk-plat-ibft/validator-privatekey{{ordinal}}/password"
   conjur:
     keyPath: "besu/validators/{{ordinal}}/private-key"
 

@@ -173,40 +173,51 @@ Generate static-nodes.json content
 Priority:
 1. staticNodes.raw - User-provided full enode URLs
 2. validators.keys.inline with publicKey - Build enode URLs from public keys
-3. DNS-only format - For DNS-based discovery (Xdns-enabled)
+3. Empty array - Besu static-nodes.json accepts only full enode URLs
 */}}
+{{- define "besu-stack.staticNodes.validate" -}}
+{{- range $node := (.Values.staticNodes.raw | default list) -}}
+{{- if not (hasPrefix "enode://" $node) -}}
+{{- fail (printf "staticNodes.raw entries must be full enode:// URLs, got %q" $node) -}}
+{{- end -}}
+{{- if hasPrefix "enode://0x" $node -}}
+{{- fail (printf "staticNodes.raw enode public keys must not include the 0x prefix, got %q" $node) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "besu-stack.staticNodes" -}}
+{{- include "besu-stack.staticNodes.validate" . -}}
 {{- $staticNodesRaw := .Values.staticNodes.raw | default list -}}
 {{- if gt (len $staticNodesRaw) 0 -}}
 {{- /* Use user-provided static nodes with full enode URLs */ -}}
 {{- $staticNodesRaw | toJson -}}
 {{- else -}}
-{{- /* Build static nodes from validators */ -}}
+{{- /* Build static nodes from validators only when every running validator has a public key. */ -}}
 {{- $serviceName := include "besu-stack.validators.serviceName" . -}}
 {{- $namespace := .Release.Namespace -}}
 {{- $port := .Values.validators.p2p.port | int | default 30303 -}}
 {{- $replicas := .Values.validators.replicas | int -}}
 {{- $inlineKeys := .Values.validators.keys.inline | default list -}}
-{{- $hasPublicKeys := false -}}
-{{- range $inlineKeys -}}
-{{- if .publicKey -}}
-{{- $hasPublicKeys = true -}}
-{{- end -}}
-{{- end -}}
+{{- $hasAllPublicKeys := and (gt $replicas 0) (ge (len $inlineKeys) $replicas) -}}
 {{- $nodes := list -}}
+{{- if $hasAllPublicKeys -}}
 {{- range $i := until $replicas -}}
 {{- $host := printf "%s-%d.%s.%s.svc.cluster.local" $serviceName $i $serviceName $namespace -}}
-{{- if and $hasPublicKeys (lt $i (len $inlineKeys)) -}}
-{{- /* Build full enode URL with public key */ -}}
 {{- $key := index $inlineKeys $i -}}
+{{- if not $key.publicKey -}}
+{{- $hasAllPublicKeys = false -}}
+{{- else -}}
 {{- $pubKey := $key.publicKey | replace "0x" "" | trimPrefix "04" -}}
 {{- $nodes = append $nodes (printf "enode://%s@%s:%d?discport=%d" $pubKey $host $port $port) -}}
-{{- else -}}
-{{- /* DNS-only format for DNS-based discovery */ -}}
-{{- $nodes = append $nodes (printf "%s:%d" $host $port) -}}
 {{- end -}}
 {{- end -}}
+{{- end -}}
+{{- if $hasAllPublicKeys -}}
 {{- $nodes | toJson -}}
+{{- else -}}
+{{- list | toJson -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 
@@ -322,6 +333,7 @@ Pod annotations for config/secret checksums
 */}}
 {{- define "besu-stack.podAnnotations" -}}
 checksum/genesis: {{ include (print $.Template.BasePath "/configmap-genesis.yaml") . | sha256sum }}
+checksum/static-nodes: {{ include (print $.Template.BasePath "/configmap-static-nodes.yaml") . | sha256sum }}
 {{- range $key, $value := .Values.podAnnotations }}
 {{ $key }}: {{ $value | quote }}
 {{- end }}
@@ -415,6 +427,7 @@ Besu command args for validators - uses FOREST storage for consensus nodes
 - --remote-connections-limit-enabled=false
 # Sync
 - --sync-mode=FULL
+- --sync-min-peers={{ .Values.validators.sync.minPeers }}
 {{- if .Values.validators.rpc.http.enabled }}
 # HTTP RPC
 - --rpc-http-enabled
@@ -492,6 +505,7 @@ Besu command args for RPC nodes - uses BONSAI storage for faster queries
 - --remote-connections-limit-enabled=false
 # Sync
 - --sync-mode=FULL
+- --sync-min-peers={{ .Values.rpcNodes.sync.minPeers }}
 {{- if .Values.rpcNodes.rpc.http.enabled }}
 # HTTP RPC
 - --rpc-http-enabled
