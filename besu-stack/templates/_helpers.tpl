@@ -364,19 +364,18 @@ seccompProfile:
 Image pull secrets (combining global and local)
 */}}
 {{- define "besu-stack.imagePullSecrets" -}}
+{{- $seen := dict }}
 {{- $pullSecrets := list }}
-{{- range .Values.global.imagePullSecrets }}
+{{- range concat (.Values.global.imagePullSecrets | default list) (.Values.imagePullSecrets | default list) }}
+{{- $name := "" }}
 {{- if kindIs "string" . }}
-{{- $pullSecrets = append $pullSecrets . }}
+{{- $name = . }}
 {{- else if .name }}
-{{- $pullSecrets = append $pullSecrets .name }}
+{{- $name = .name }}
 {{- end }}
-{{- end }}
-{{- range .Values.imagePullSecrets }}
-{{- if kindIs "string" . }}
-{{- $pullSecrets = append $pullSecrets . }}
-{{- else if .name }}
-{{- $pullSecrets = append $pullSecrets .name }}
+{{- if and $name (not (hasKey $seen $name)) }}
+{{- $_ := set $seen $name true }}
+{{- $pullSecrets = append $pullSecrets $name }}
 {{- end }}
 {{- end }}
 {{- if $pullSecrets }}
