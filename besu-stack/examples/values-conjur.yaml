@@ -32,7 +32,7 @@
 #   - The inline entries intentionally have NO privateKey field.
 #
 # Execution flow per pod (e.g., besu-validators-2):
-#   1. conjur-authenticator init container authenticates with Conjur follower
+#   1. authenticator init container authenticates with Conjur follower
 #   2. Besu container wrapper script creates secrets.yml for ordinal 2
 #   3. summon fetches "besu/validators/2/private-key" from Conjur
 #   4. Key written to /secrets/nodekey

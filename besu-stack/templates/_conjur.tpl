@@ -50,7 +50,7 @@ Authenticates with Conjur and writes access token to /run/conjur/access-token
 */}}
 {{- define "besu-stack.conjur.initContainer" -}}
 {{- if include "besu-stack.conjur.enabled" . }}
-- name: conjur-authenticator
+- name: authenticator
   image: {{ include "besu-stack.conjur.image" . }}
   imagePullPolicy: {{ .Values.global.conjur.image.pullPolicy | default "Always" }}
   env:
