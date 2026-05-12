@@ -1,0 +1,14 @@
+besu-stack/Chart.yaml
+  h_3e669c3a752ab1 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.4",
+  "base_commit_sha": "ec2278ae098edd924df008dbe555cda257556a32",
+  "prompts": {},
+  "humans": {
+    "h_3e669c3a752ab1": {
+      "author": "Oleksandr Hrab <oleksandr@settlemint.com>"
+    }
+  }
+}
