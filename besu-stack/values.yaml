@@ -145,7 +145,7 @@ validators:
     # -- Image repository
     repository: hyperledger/besu
     # -- Image tag (defaults to appVersion)
-    tag: "26.4.0"
+    tag: "26.5.0"
     # -- Image pull policy
     pullPolicy: IfNotPresent
 
