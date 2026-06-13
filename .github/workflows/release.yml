@@ -110,7 +110,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Create Distr Application Version
-        uses: glasskube/distr-create-version-action@v1.6.0
+        uses: glasskube/distr-create-version-action@v1.6.2
         with:
           api-base: "https://distribution.settlemint.com/api/v1"
           api-token: ${{ secrets.DISTR_TOKEN }}
