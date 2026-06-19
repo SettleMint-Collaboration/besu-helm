@@ -358,6 +358,9 @@ OpenShift pod security context
 runAsNonRoot: true
 seccompProfile:
   type: RuntimeDefault
+{{- with .Values.openshift.fsGroup }}
+fsGroup: {{ . | int64 }}
+{{- end }}
 {{- end -}}
 
 {{/*
