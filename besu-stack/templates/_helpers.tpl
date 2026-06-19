@@ -359,7 +359,7 @@ runAsNonRoot: true
 seccompProfile:
   type: RuntimeDefault
 {{- with .Values.openshift.fsGroup }}
-fsGroup: {{ . }}
+fsGroup: {{ . | int64 }}
 {{- end }}
 {{- end -}}
 
