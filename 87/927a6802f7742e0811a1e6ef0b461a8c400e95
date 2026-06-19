@@ -1,0 +1,19 @@
+besu-stack/templates/_helpers.tpl
+  s_933415ea16b36b::t_803e88c7b96144 362
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "87927a6802f7742e0811a1e6ef0b461a8c400e95",
+  "prompts": {},
+  "sessions": {
+    "s_933415ea16b36b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "86c30200-ba66-48d7-88d1-3d5def12dfb1",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Oleksandr Hrab <oleksandr@settlemint.com>"
+    }
+  }
+}
