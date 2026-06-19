@@ -1,0 +1,29 @@
+besu-stack/CHANGELOG.md
+  s_933415ea16b36b::t_138ad33e3cdfac 3-8
+besu-stack/templates/statefulset-rpc.yaml
+  s_933415ea16b36b::t_792b86b1d161bd 85
+besu-stack/Chart.yaml
+  s_933415ea16b36b::t_7e122070ac0890 5
+besu-stack/values.yaml
+  s_933415ea16b36b::t_ba450f633710db 297-300
+  s_933415ea16b36b::t_783bdd93882dd4 716-721
+  s_933415ea16b36b::t_58b89fa4cab291 483-486
+besu-stack/templates/_helpers.tpl
+  s_933415ea16b36b::t_ee6e6afb804a78 361-363
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "80e5ac08a1778619b7d792e7c33b90b0dd5d5dec",
+  "prompts": {},
+  "sessions": {
+    "s_933415ea16b36b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "86c30200-ba66-48d7-88d1-3d5def12dfb1",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Oleksandr Hrab <oleksandr@settlemint.com>"
+    }
+  }
+}
