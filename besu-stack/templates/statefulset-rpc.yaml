@@ -82,8 +82,7 @@ spec:
               echo "Validators are ready!"
           {{- if not .Values.openshift.enabled }}
           securityContext:
-            runAsUser: 1000
-            runAsNonRoot: true
+            {{- toYaml .Values.rpcNodes.containerSecurityContext | nindent 12 }}
           {{- else }}
           securityContext:
             {{- include "besu-stack.openshiftContainerSecurityContext" . | nindent 12 }}

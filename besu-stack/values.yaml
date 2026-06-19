@@ -294,7 +294,10 @@ validators:
       cpu: "2"
       memory: "8Gi"
 
-  # -- Pod security context (ignored if openshift.enabled)
+  # -- Pod security context. These are the non-OpenShift (vanilla k8s) defaults
+  # and are ignored when openshift.enabled is true (the chart's OpenShift helper
+  # sets the pod securityContext instead; see openshift.fsGroup). Note these
+  # values can still leak through any partial override of this map.
   podSecurityContext:
     runAsNonRoot: true
     runAsUser: 1000
@@ -477,7 +480,10 @@ rpcNodes:
     limits:
       memory: "8Gi"
 
-  # -- Pod security context
+  # -- Pod security context. These are the non-OpenShift (vanilla k8s) defaults
+  # and are ignored when openshift.enabled is true (the chart's OpenShift helper
+  # sets the pod securityContext instead; see openshift.fsGroup). Note these
+  # values can still leak through any partial override of this map.
   podSecurityContext:
     runAsNonRoot: true
     runAsUser: 1000
@@ -707,6 +713,12 @@ openshift:
   # -- Enable OpenShift-specific configurations
   # Sets appropriate security contexts for restricted SCC
   enabled: false
+  # -- fsGroup for the pod securityContext on OpenShift. Required when volumes
+  # the non-root UID must write are emptyDir/PVC-backed and the pod's SCC does
+  # not auto-inject an fsGroup (e.g. the Conjur key dir /secrets). Must be within
+  # the namespace's openshift.io/sa.scc.supplemental-groups range. Empty = unset
+  # (rely on SCC injection, current behaviour).
+  fsGroup: ""
 
 # =============================================================================
 # PRIORITY CLASS
