@@ -2,8 +2,8 @@ apiVersion: v2
 name: besu-stack
 description: Production-ready Hyperledger Besu blockchain network deployment for Kubernetes
 type: application
-version: 0.3.5
-appVersion: "26.4.0"
+version: 0.3.6
+appVersion: "26.6.1"
 kubeVersion: ">=1.24.0-0"
 home: https://github.com/settlemint/besu-helm
 icon: https://raw.githubusercontent.com/hyperledger/besu-docs/main/static/img/besu-logo.svg
@@ -28,6 +28,10 @@ annotations:
   artifacthub.io/operator: "false"
   artifacthub.io/category: integration-delivery
   artifacthub.io/changes: |
+    - kind: fixed
+      description: Rename deprecated QBFT genesis option xemptyblockperiodseconds to emptyblockperiodseconds in example values (testnet, devnet, production) to silence Besu deprecation warning; runtime consensus option only, genesis block hash unchanged
+    - kind: changed
+      description: Sync appVersion to 26.6.1 to match the Besu image tag in values.yaml
     - kind: fixed
       description: Rename the Conjur authenticator init container to authenticator
     - kind: fixed

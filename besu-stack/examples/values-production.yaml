@@ -47,7 +47,7 @@ genesis:
         "qbft": {
           "blockperiodseconds": 2,
           "epochlength": 30000,
-          "xemptyblockperiodseconds": 60,
+          "emptyblockperiodseconds": 60,
           "requesttimeoutseconds": 65
         }
       },
