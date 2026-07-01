@@ -5,6 +5,75 @@ entries:
       artifacthub.io/category: integration-delivery
       artifacthub.io/changes: |
         - kind: fixed
+          description: Rename deprecated QBFT genesis option xemptyblockperiodseconds to emptyblockperiodseconds in example values (testnet, devnet, production) to silence Besu deprecation warning; runtime consensus option only, genesis block hash unchanged
+        - kind: changed
+          description: Sync appVersion to 26.6.1 to match the Besu image tag in values.yaml
+        - kind: fixed
+          description: Rename the Conjur authenticator init container to authenticator
+        - kind: fixed
+          description: Deduplicate imagePullSecrets rendered by the besu-stack.imagePullSecrets helper to prevent helm upgrade failures when the same secret name is provided in both global.imagePullSecrets and imagePullSecrets
+        - kind: fixed
+          description: static-nodes.json generation no longer emits invalid DNS-only host:port entries
+        - kind: fixed
+          description: Pods now roll when generated static-nodes.json changes
+        - kind: fixed
+          description: Set Besu sync-min-peers explicitly for small private QBFT networks
+        - kind: added
+          description: Validate staticNodes.raw entries to reject bare host:port values and enode public keys with 0x prefixes
+        - kind: fixed
+          description: Hot-warm DR mode now supports active RPC nodes while local validators are scaled to zero
+        - kind: fixed
+          description: Existing validator/RPC key secrets are copied by pod ordinal to the canonical /secrets/nodekey path
+        - kind: added
+          description: validators p2p advertisedReplicaCount for reserving DR failover endpoints independently from running replicas
+        - kind: added
+          description: networkPolicy.p2pPeerCIDRs for cross-cluster Besu p2p ingress/egress
+        - kind: added
+          description: Per-pod p2p Services (LoadBalancer / NodePort) for cross-cluster peering (validators.p2p.perPodService, rpcNodes.p2p.perPodService); default off, existing deployments unchanged
+        - kind: added
+          description: hostNetwork mode (validators.p2p.hostNetwork, rpcNodes.p2p.hostNetwork) for on-prem clusters without a LoadBalancer or VIP
+        - kind: added
+          description: perPodService and hostNetwork both compose with global.conjur.enabled via a unified entrypoint wrapper
+        - kind: added
+          description: Hot-warm DR examples (values-main.yaml, values-dr.yaml, values-conjur-perpod.yaml, values-nodeport-perpod.yaml, values-hostnetwork.yaml) and DR.md deployment guide
+        - kind: added
+          description: Validation for advertised-hosts length, NodePort range/uniqueness, and perPodService/hostNetwork mutual exclusion
+      artifacthub.io/license: MIT
+      artifacthub.io/operator: "false"
+    apiVersion: v2
+    appVersion: 26.6.1
+    created: "2026-07-01T14:26:01.406640282Z"
+    description: Production-ready Hyperledger Besu blockchain network deployment for
+      Kubernetes
+    digest: 15fb25f2fc7c11737b1b19e6c4532b5d5d91a2efc86f5a83a95a47059cd56d8b
+    home: https://github.com/settlemint/besu-helm
+    icon: https://raw.githubusercontent.com/hyperledger/besu-docs/main/static/img/besu-logo.svg
+    keywords:
+    - blockchain
+    - besu
+    - hyperledger
+    - ethereum
+    - qbft
+    - ibft
+    - validator
+    - rpc
+    kubeVersion: '>=1.24.0-0'
+    maintainers:
+    - email: support@settlemint.com
+      name: SettleMint
+      url: https://settlemint.com
+    name: besu-stack
+    sources:
+    - https://github.com/settlemint/besu-helm
+    - https://github.com/hyperledger/besu
+    type: application
+    urls:
+    - https://github.com/SettleMint-Collaboration/besu-helm/releases/download/besu-stack-0.3.6/besu-stack-0.3.6.tgz
+    version: 0.3.6
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
+        - kind: fixed
           description: Rename the Conjur authenticator init container to authenticator
         - kind: fixed
           description: Deduplicate imagePullSecrets rendered by the besu-stack.imagePullSecrets helper to prevent helm upgrade failures when the same secret name is provided in both global.imagePullSecrets and imagePullSecrets
@@ -1093,4 +1162,4 @@ entries:
     urls:
     - https://github.com/SettleMint-Collaboration/besu-helm/releases/download/besu-stack-0.1.1/besu-stack-0.1.1.tgz
     version: 0.1.1
-generated: "2026-06-19T08:36:23.169478201Z"
+generated: "2026-07-01T14:26:01.406874951Z"
