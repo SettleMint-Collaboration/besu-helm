@@ -1,0 +1,20 @@
+besu-stack/Chart.yaml
+  s_0f5751923066c2::t_ef1b8852cc07cd 6
+  s_0f5751923066c2::t_83f80ccf4123ec 33-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.6",
+  "base_commit_sha": "8a46419f642c06c9da67b3f4d29f9b95d8687312",
+  "prompts": {},
+  "sessions": {
+    "s_0f5751923066c2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9c45625f-fb9b-4d2e-a0d9-f3d43ea4ba22",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Oleksandr Hrab <oleksandr@settlemint.com>"
+    }
+  }
+}
