@@ -1,0 +1,19 @@
+besu-stack/examples/values-testnet.yaml
+  s_ec2f69647ebb81::t_440c20d35c7ec1 67-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.23",
+  "base_commit_sha": "fef5691a84cb37bde48d5e9a8d7ad318d26e0ffd",
+  "prompts": {},
+  "sessions": {
+    "s_ec2f69647ebb81": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ed4769ad-0f6d-4760-a9d3-4c239a70f261",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Oleksandr Hrab <oleksandr@settlemint.com>"
+    }
+  }
+}
