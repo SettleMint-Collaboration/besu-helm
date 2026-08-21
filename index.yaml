@@ -5,6 +5,47 @@ entries:
       artifacthub.io/category: integration-delivery
       artifacthub.io/changes: |
         - kind: fixed
+          description: Generated static-nodes.json enode URLs now use namespace-relative hostnames instead of embedding the release namespace, so a workload restored into a differently-named namespace peers with its own validators rather than the original deployment
+        - kind: fixed
+          description: The wait-for-validators init container now probes a namespace-relative hostname, so RPC nodes restored into a differently-named namespace no longer block forever on a validator in the original deployment
+        - kind: removed
+          description: Dead besu-stack.bootnodes helper and the discovery.bootnodes value it read; the helper was referenced by no template, emitted invalid enode-less host:port entries, and embedded the release namespace
+      artifacthub.io/license: MIT
+      artifacthub.io/operator: "false"
+    apiVersion: v2
+    appVersion: 26.6.1
+    created: "2026-08-21T11:27:57.88571124Z"
+    description: Production-ready Hyperledger Besu blockchain network deployment for
+      Kubernetes
+    digest: 5ce7158c702aaf109a78a4e27cc3e915ae126e5337a37d49607f5df19bd1a375
+    home: https://github.com/settlemint/besu-helm
+    icon: https://raw.githubusercontent.com/hyperledger/besu-docs/main/static/img/besu-logo.svg
+    keywords:
+    - blockchain
+    - besu
+    - hyperledger
+    - ethereum
+    - qbft
+    - ibft
+    - validator
+    - rpc
+    kubeVersion: '>=1.24.0-0'
+    maintainers:
+    - email: support@settlemint.com
+      name: SettleMint
+      url: https://settlemint.com
+    name: besu-stack
+    sources:
+    - https://github.com/settlemint/besu-helm
+    - https://github.com/hyperledger/besu
+    type: application
+    urls:
+    - https://github.com/SettleMint-Collaboration/besu-helm/releases/download/besu-stack-0.3.7/besu-stack-0.3.7.tgz
+    version: 0.3.7
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
+        - kind: fixed
           description: Rename deprecated QBFT genesis option xemptyblockperiodseconds to emptyblockperiodseconds in example values (testnet, devnet, production) to silence Besu deprecation warning; runtime consensus option only, genesis block hash unchanged
         - kind: changed
           description: Sync appVersion to 26.6.1 to match the Besu image tag in values.yaml
@@ -1162,4 +1203,4 @@ entries:
     urls:
     - https://github.com/SettleMint-Collaboration/besu-helm/releases/download/besu-stack-0.1.1/besu-stack-0.1.1.tgz
     version: 0.1.1
-generated: "2026-07-01T14:26:01.406874951Z"
+generated: "2026-08-21T11:27:57.8858819Z"
