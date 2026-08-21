@@ -551,10 +551,6 @@ rpcNodes:
 # =============================================================================
 
 discovery:
-  # -- Static bootnodes (auto-generated from validators if empty)
-  # Format: enode://<pubkey>@<host>:<port>
-  bootnodes: []
-
   # -- Enable DNS-based discovery in Kubernetes
   dnsEnabled: true
 

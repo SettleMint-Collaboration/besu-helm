@@ -64,7 +64,8 @@ genesis:
     }
 
 # Static nodes are auto-generated from validator public keys
-# The enode URLs use the release namespace automatically
+# The enode URLs use namespace-relative hostnames, so they stay correct if the
+# release is restored into a differently-named namespace
 
 validators:
   replicas: 4
