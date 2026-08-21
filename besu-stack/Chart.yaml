@@ -2,7 +2,7 @@ apiVersion: v2
 name: besu-stack
 description: Production-ready Hyperledger Besu blockchain network deployment for Kubernetes
 type: application
-version: 0.3.6
+version: 0.3.7
 appVersion: "26.6.1"
 kubeVersion: ">=1.24.0-0"
 home: https://github.com/settlemint/besu-helm
@@ -29,36 +29,8 @@ annotations:
   artifacthub.io/category: integration-delivery
   artifacthub.io/changes: |
     - kind: fixed
-      description: Rename deprecated QBFT genesis option xemptyblockperiodseconds to emptyblockperiodseconds in example values (testnet, devnet, production) to silence Besu deprecation warning; runtime consensus option only, genesis block hash unchanged
-    - kind: changed
-      description: Sync appVersion to 26.6.1 to match the Besu image tag in values.yaml
+      description: Generated static-nodes.json enode URLs now use namespace-relative hostnames instead of embedding the release namespace, so a workload restored into a differently-named namespace peers with its own validators rather than the original deployment
     - kind: fixed
-      description: Rename the Conjur authenticator init container to authenticator
-    - kind: fixed
-      description: Deduplicate imagePullSecrets rendered by the besu-stack.imagePullSecrets helper to prevent helm upgrade failures when the same secret name is provided in both global.imagePullSecrets and imagePullSecrets
-    - kind: fixed
-      description: static-nodes.json generation no longer emits invalid DNS-only host:port entries
-    - kind: fixed
-      description: Pods now roll when generated static-nodes.json changes
-    - kind: fixed
-      description: Set Besu sync-min-peers explicitly for small private QBFT networks
-    - kind: added
-      description: Validate staticNodes.raw entries to reject bare host:port values and enode public keys with 0x prefixes
-    - kind: fixed
-      description: Hot-warm DR mode now supports active RPC nodes while local validators are scaled to zero
-    - kind: fixed
-      description: Existing validator/RPC key secrets are copied by pod ordinal to the canonical /secrets/nodekey path
-    - kind: added
-      description: validators p2p advertisedReplicaCount for reserving DR failover endpoints independently from running replicas
-    - kind: added
-      description: networkPolicy.p2pPeerCIDRs for cross-cluster Besu p2p ingress/egress
-    - kind: added
-      description: Per-pod p2p Services (LoadBalancer / NodePort) for cross-cluster peering (validators.p2p.perPodService, rpcNodes.p2p.perPodService); default off, existing deployments unchanged
-    - kind: added
-      description: hostNetwork mode (validators.p2p.hostNetwork, rpcNodes.p2p.hostNetwork) for on-prem clusters without a LoadBalancer or VIP
-    - kind: added
-      description: perPodService and hostNetwork both compose with global.conjur.enabled via a unified entrypoint wrapper
-    - kind: added
-      description: Hot-warm DR examples (values-main.yaml, values-dr.yaml, values-conjur-perpod.yaml, values-nodeport-perpod.yaml, values-hostnetwork.yaml) and DR.md deployment guide
-    - kind: added
-      description: Validation for advertised-hosts length, NodePort range/uniqueness, and perPodService/hostNetwork mutual exclusion
+      description: The wait-for-validators init container now probes a namespace-relative hostname, so RPC nodes restored into a differently-named namespace no longer block forever on a validator in the original deployment
+    - kind: removed
+      description: Dead besu-stack.bootnodes helper and the discovery.bootnodes value it read; the helper was referenced by no template, emitted invalid enode-less host:port entries, and embedded the release namespace

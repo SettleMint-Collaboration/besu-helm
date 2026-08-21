@@ -74,8 +74,11 @@ spec:
             - -c
             - |
               echo "Waiting for validators to be ready..."
-              # Wait for at least one validator to be reachable
-              until nc -z {{ include "besu-stack.validators.serviceName" . }}-0.{{ include "besu-stack.validators.serviceName" . }}.{{ .Release.Namespace }}.svc.cluster.local {{ .Values.validators.p2p.port }}; do
+              # Wait for at least one validator to be reachable. The hostname is
+              # namespace-relative so it stays correct if the workload is restored
+              # into a differently-named namespace; busybox resolves it through the
+              # pod resolv.conf search list.
+              until nc -z {{ include "besu-stack.validators.serviceName" . }}-0.{{ include "besu-stack.validators.serviceName" . }} {{ .Values.validators.p2p.port }}; do
                 echo "Waiting for validator-0..."
                 sleep 5
               done

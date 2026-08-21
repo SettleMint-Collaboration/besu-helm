@@ -148,27 +148,6 @@ Return the RPC service name
 {{- end -}}
 
 {{/*
-Generate bootnode enode URLs from validators
-Format: enode://<pubkey>@<host>:<port>
-If discovery.bootnodes is set, use those. Otherwise, generate from validator service DNS.
-*/}}
-{{- define "besu-stack.bootnodes" -}}
-{{- if .Values.discovery.bootnodes -}}
-{{- join "," .Values.discovery.bootnodes -}}
-{{- else -}}
-{{- $serviceName := include "besu-stack.validators.serviceName" . -}}
-{{- $namespace := .Release.Namespace -}}
-{{- $port := .Values.validators.p2p.port | default 30303 | int -}}
-{{- $replicas := .Values.validators.replicas | int -}}
-{{- $nodes := list -}}
-{{- range $i := until $replicas -}}
-{{- $nodes = append $nodes (printf "%s-%d.%s.%s.svc.cluster.local:%d" $serviceName $i $serviceName $namespace $port) -}}
-{{- end -}}
-{{- join "," $nodes -}}
-{{- end -}}
-{{- end -}}
-
-{{/*
 Generate static-nodes.json content
 Priority:
 1. staticNodes.raw - User-provided full enode URLs
@@ -194,8 +173,11 @@ Priority:
 {{- $staticNodesRaw | toJson -}}
 {{- else -}}
 {{- /* Build static nodes from validators only when every running validator has a public key. */ -}}
+{{- /* Hostnames are namespace-relative on purpose: the generated list only ever names
+       validators in this release's own namespace, so the short form resolves identically
+       via the pod resolv.conf search list while staying correct if the workload is
+       restored into a differently-named namespace. */ -}}
 {{- $serviceName := include "besu-stack.validators.serviceName" . -}}
-{{- $namespace := .Release.Namespace -}}
 {{- $port := .Values.validators.p2p.port | int | default 30303 -}}
 {{- $replicas := .Values.validators.replicas | int -}}
 {{- $inlineKeys := .Values.validators.keys.inline | default list -}}
@@ -203,7 +185,7 @@ Priority:
 {{- $nodes := list -}}
 {{- if $hasAllPublicKeys -}}
 {{- range $i := until $replicas -}}
-{{- $host := printf "%s-%d.%s.%s.svc.cluster.local" $serviceName $i $serviceName $namespace -}}
+{{- $host := printf "%s-%d.%s" $serviceName $i $serviceName -}}
 {{- $key := index $inlineKeys $i -}}
 {{- if not $key.publicKey -}}
 {{- $hasAllPublicKeys = false -}}
