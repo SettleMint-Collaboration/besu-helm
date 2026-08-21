@@ -1,0 +1,25 @@
+besu-stack/templates/statefulset-rpc.yaml
+  s_ec2f69647ebb81::t_bab60fc778db54 77-81
+besu-stack/Chart.yaml
+  s_ec2f69647ebb81::t_964e2810e08024 5
+  s_ec2f69647ebb81::t_889b41cf6a5933 32,34-36
+besu-stack/templates/_helpers.tpl
+  s_ec2f69647ebb81::t_18e9a3217f03af 176-179
+  s_ec2f69647ebb81::t_f3bdfcf76c677a 188
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.23",
+  "base_commit_sha": "1372b6091e82a4d5b1b71a6a4a0c9eb53e33ae3b",
+  "prompts": {},
+  "sessions": {
+    "s_ec2f69647ebb81": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ed4769ad-0f6d-4760-a9d3-4c239a70f261",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Oleksandr Hrab <oleksandr@settlemint.com>"
+    }
+  }
+}
