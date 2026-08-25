@@ -1,0 +1,35 @@
+besu-stack/templates/serviceaccount.yaml
+  s_941d8379996be1::t_d2a887d480505f 12
+besu-stack/templates/statefulset-validators.yaml
+  s_941d8379996be1::t_5fbfc06c458a6f 36
+besu-stack/templates/rbac.yaml
+  s_941d8379996be1::t_e187792289624e 9-13
+besu-stack/examples/values-conjur.yaml
+  s_941d8379996be1::t_d8e24be9bff5ab 68-71
+besu-stack/templates/_helpers.tpl
+  s_941d8379996be1::t_9a427fc94c251b 80-98
+  s_941d8379996be1::t_2dc768aff7eab5 79
+besu-stack/values.yaml
+  s_941d8379996be1::t_7d9634fa170d33 590-596,603-606
+besu-stack/Chart.yaml
+  s_941d8379996be1::t_10cda9f20ecce7 5
+  s_941d8379996be1::t_2f7c6b8d6af67f 31-36
+besu-stack/templates/statefulset-rpc.yaml
+  s_941d8379996be1::t_54870ae6d63cf0 33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "4be180564da302df048b1ac0f6c2eb245bbefa88",
+  "prompts": {},
+  "sessions": {
+    "s_941d8379996be1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c5e26b66-5aa1-4b12-8590-6a8146a9c3e6",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Oleksandr Hrab <oleksandr@settlemint.com>"
+    }
+  }
+}
