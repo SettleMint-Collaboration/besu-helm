@@ -2,7 +2,7 @@ apiVersion: v2
 name: besu-stack
 description: Production-ready Hyperledger Besu blockchain network deployment for Kubernetes
 type: application
-version: 0.3.7
+version: 0.3.8
 appVersion: "26.6.1"
 kubeVersion: ">=1.24.0-0"
 home: https://github.com/settlemint/besu-helm
@@ -28,9 +28,9 @@ annotations:
   artifacthub.io/operator: "false"
   artifacthub.io/category: integration-delivery
   artifacthub.io/changes: |
-    - kind: fixed
-      description: Generated static-nodes.json enode URLs now use namespace-relative hostnames instead of embedding the release namespace, so a workload restored into a differently-named namespace peers with its own validators rather than the original deployment
-    - kind: fixed
-      description: The wait-for-validators init container now probes a namespace-relative hostname, so RPC nodes restored into a differently-named namespace no longer block forever on a validator in the original deployment
-    - kind: removed
-      description: Dead besu-stack.bootnodes helper and the discovery.bootnodes value it read; the helper was referenced by no template, emitted invalid enode-less host:port entries, and embedded the release namespace
+    - kind: security
+      description: "serviceAccount.automountServiceAccountToken now defaults to false and is enforced on the pod spec as well as the ServiceAccount; Besu has no Kubernetes client, so the API credential was mounted into every validator and RPC pod unused"
+    - kind: security
+      description: "rbac.create now defaults to false; the Role granted the service account get/list/watch on pods, configmaps and secrets, which no workload in the chart reads - genesis, static-nodes and node keys arrive as kubelet-mounted volumes"
+    - kind: added
+      description: "besu-stack.automountServiceAccountToken helper keeps the projected token mounted when the CyberArk Conjur authenticator runs in authn-jwt mode, which reads it to authenticate to Conjur; authn-k8s is unaffected"

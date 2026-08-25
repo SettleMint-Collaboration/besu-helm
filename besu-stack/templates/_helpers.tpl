@@ -77,6 +77,26 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
+Whether pods get a Kubernetes API credential mounted.
+
+Besu itself never calls the API, and the configMap/secret volumes this chart
+mounts are handled by the kubelet, so the default is false. The one consumer
+in-tree is the CyberArk Conjur authenticator in authn-jwt mode, which reads the
+projected token at /var/run/secrets/kubernetes.io/serviceaccount/token to
+authenticate to Conjur. authn-k8s does not need it (Conjur injects the client
+certificate server-side), so only authn-jwt forces the mount back on.
+*/}}
+{{- define "besu-stack.automountServiceAccountToken" -}}
+{{- $automount := .Values.serviceAccount.automountServiceAccountToken -}}
+{{- if include "besu-stack.conjur.enabled" . -}}
+{{- if contains "authn-jwt" (.Values.global.conjur.authnUrl | default "") -}}
+{{- $automount = true -}}
+{{- end -}}
+{{- end -}}
+{{- $automount -}}
+{{- end }}
+
+{{/*
 Determine the ingress type to use (auto-detection or explicit)
 */}}
 {{- define "besu-stack.ingressType" -}}

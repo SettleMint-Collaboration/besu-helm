@@ -587,16 +587,23 @@ serviceAccount:
   name: ""
   # -- Annotations for service account
   annotations: {}
-  # -- Automount API credentials
-  automountServiceAccountToken: true
+  # -- Mount a Kubernetes API credential into the pods. Besu does not call the
+  # Kubernetes API: genesis, static-nodes and node keys are mounted as
+  # configMap/secret volumes by the kubelet, which needs no token. Leave this
+  # false unless a sidecar or init container of your own needs the API.
+  # The CyberArk Conjur authenticator in authn-jwt mode is handled
+  # automatically (see besu-stack.automountServiceAccountToken).
+  automountServiceAccountToken: false
 
 # =============================================================================
 # RBAC
 # =============================================================================
 
 rbac:
-  # -- Create RBAC resources
-  create: true
+  # -- Create a Role/RoleBinding granting the service account get/list/watch on
+  # pods, configmaps and secrets. Nothing in this chart uses it, so it is off by
+  # default; enable it only if you add a workload that reads the API.
+  create: false
 
 # =============================================================================
 # NETWORK POLICIES
