@@ -6,15 +6,17 @@ metadata:
   labels:
     {{- include "besu-stack.labels" . | nindent 4 }}
 rules:
-  # Allow pods to read their own status for DNS discovery
+  # No workload in this chart uses these permissions. Besu has no Kubernetes
+  # client, and genesis, static-nodes and node keys reach the pods as
+  # configMap/secret volumes mounted by the kubelet, which needs no RBAC.
+  # They are kept behind rbac.create (default false) only as an opt-in for
+  # extra containers you run alongside Besu.
   - apiGroups: [""]
     resources: ["pods"]
     verbs: ["get", "list", "watch"]
-  # Allow reading configmaps for genesis and static-nodes
   - apiGroups: [""]
     resources: ["configmaps"]
     verbs: ["get", "list", "watch"]
-  # Allow reading secrets for keys (if using projected secrets)
   - apiGroups: [""]
     resources: ["secrets"]
     verbs: ["get", "list", "watch"]

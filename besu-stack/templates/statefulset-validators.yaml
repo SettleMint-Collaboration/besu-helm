@@ -33,6 +33,7 @@ spec:
         {{- include "besu-stack.podAnnotations" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "besu-stack.serviceAccountName" . }}
+      automountServiceAccountToken: {{ include "besu-stack.automountServiceAccountToken" . }}
       {{- if include "besu-stack.validators.hostNetworkEnabled" . }}
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet

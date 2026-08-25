@@ -65,6 +65,10 @@ global:
     account: "ocbc"
 
     # -- Conjur Kubernetes authenticator URL (update per environment)
+    # authn-k8s needs no API credential in the pod: Conjur injects the client
+    # certificate server-side. An authn-jwt URL does need one, and the chart
+    # turns serviceAccount.automountServiceAccountToken back on by itself when
+    # it sees /authn-jwt/ here.
     # SIT: https://follower.dapvault.svc.cluster.local/api/authn-k8s/dev-cluster
     # UAT: https://follower.dapvault.svc.cluster.local/api/authn-k8s/uat-cluster
     authnUrl: "https://follower.dapvault.svc.cluster.local/api/authn-k8s/dev-cluster"
