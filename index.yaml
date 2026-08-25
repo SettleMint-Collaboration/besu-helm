@@ -4,6 +4,47 @@ entries:
   - annotations:
       artifacthub.io/category: integration-delivery
       artifacthub.io/changes: |
+        - kind: security
+          description: "serviceAccount.automountServiceAccountToken now defaults to false and is enforced on the pod spec as well as the ServiceAccount; Besu has no Kubernetes client, so the API credential was mounted into every validator and RPC pod unused"
+        - kind: security
+          description: "rbac.create now defaults to false; the Role granted the service account get/list/watch on pods, configmaps and secrets, which no workload in the chart reads - genesis, static-nodes and node keys arrive as kubelet-mounted volumes"
+        - kind: added
+          description: "besu-stack.automountServiceAccountToken helper keeps the projected token mounted when the CyberArk Conjur authenticator runs in authn-jwt mode, which reads it to authenticate to Conjur; authn-k8s is unaffected"
+      artifacthub.io/license: MIT
+      artifacthub.io/operator: "false"
+    apiVersion: v2
+    appVersion: 26.6.1
+    created: "2026-08-25T07:56:33.635418532Z"
+    description: Production-ready Hyperledger Besu blockchain network deployment for
+      Kubernetes
+    digest: 7f1a4fd98a32a9c9472213020bd19e251212d02332e3ec42696b21e6391a3fde
+    home: https://github.com/settlemint/besu-helm
+    icon: https://raw.githubusercontent.com/hyperledger/besu-docs/main/static/img/besu-logo.svg
+    keywords:
+    - blockchain
+    - besu
+    - hyperledger
+    - ethereum
+    - qbft
+    - ibft
+    - validator
+    - rpc
+    kubeVersion: '>=1.24.0-0'
+    maintainers:
+    - email: support@settlemint.com
+      name: SettleMint
+      url: https://settlemint.com
+    name: besu-stack
+    sources:
+    - https://github.com/settlemint/besu-helm
+    - https://github.com/hyperledger/besu
+    type: application
+    urls:
+    - https://github.com/SettleMint-Collaboration/besu-helm/releases/download/besu-stack-0.3.8/besu-stack-0.3.8.tgz
+    version: 0.3.8
+  - annotations:
+      artifacthub.io/category: integration-delivery
+      artifacthub.io/changes: |
         - kind: fixed
           description: Generated static-nodes.json enode URLs now use namespace-relative hostnames instead of embedding the release namespace, so a workload restored into a differently-named namespace peers with its own validators rather than the original deployment
         - kind: fixed
@@ -1203,4 +1244,4 @@ entries:
     urls:
     - https://github.com/SettleMint-Collaboration/besu-helm/releases/download/besu-stack-0.1.1/besu-stack-0.1.1.tgz
     version: 0.1.1
-generated: "2026-08-21T11:27:57.8858819Z"
+generated: "2026-08-25T07:56:33.635696192Z"
